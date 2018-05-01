@@ -1,0 +1,31 @@
+create catan board
+	Has to contain wheat/ore/etc. tiles
+	Players must be able to put roads between them
+
+create all the players
+	Lets say 4 players will always be playing
+
+start beginning of turn things
+	randomly choose a player to start
+	they get to place down a house and a road first
+	randomly go around and each player places a house and road
+	go in reverse order
+
+Create an order that players will take turns in
+
+start each turn
+	roll the die
+	distribute resources based on that roll
+	if it's a 7
+		take resources from everyone if necessary
+		move the robber
+			take resources from a player if necessary
+	certain player can build/buy what they want if they have the resources
+	At the end, check to see if player has won
+
+
+Random functions to make:
+	Print out the board state
+	Return hand size
+	Take a random resource from another player
+	
