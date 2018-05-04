@@ -96,16 +96,16 @@ void RunFirstTurn(void)
 	for (unsigned int i = 0; i < board.allPlayers.size(); i++)
 	{
 		// current player gets to place a house and a road
-	  board.PlaceHouse(i,0,0);
-		board.PlaceRoad(i);
+	  board.PlaceHouse(i,-1,-1);
+	  board.PlaceRoad(i,-1,-1,-1);
 	}
 	
 	// now do the same thing again
 	for (unsigned int i = 0; i < board.allPlayers.size(); i++)
 	  {
 		// current player gets to place a house and a road
-	    board.PlaceHouse(i,0,0);
-		board.PlaceRoad(i);
+	    board.PlaceHouse(i,-1,-1);
+	    board.PlaceRoad(i,-1,-1,-1);
 	}
 	board.PrintBoard();
 }
@@ -116,6 +116,7 @@ void RunTurn(void)
 	for (unsigned int i = 0; i < board.allPlayers.size(); i++)
 	{
 	  Player p = board.allPlayers[i];
+	  p.Print();
 		// first, roll the die and see who gets what
 		board.RollResourceDice();
 		vector<int> turn;
@@ -126,6 +127,7 @@ void RunTurn(void)
 		int mon = 0,year = 0,build = 0,knight = 0;
 		int brick=0,wood=0,wheat=0,sheep=0,ore=0;
 		for(unsigned int j=0; j<p.developmentHand.size(); j++){
+		  //cout << p.developmentHand[j] << endl;
 		  if(p.developmentHand[j] == monopoly){
 		    turn.push_back(1);
 		    mon++;
@@ -141,6 +143,7 @@ void RunTurn(void)
 		  }
 		}
 		for(unsigned int j=0; j<p.resourceHand.size(); j++){
+		  //cout << i << " has " << p.resourceHand[j] << endl;
 		  if(p.resourceHand[j] == ore){
 		    ore++;
 		  } else if(p.resourceHand[j] == wheat){
