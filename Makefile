@@ -12,3 +12,4 @@ clean:
 	rm -f *.out
 	rm -f *~*.h.gch *#
 	rm -f *.h.gch
+	rm *~

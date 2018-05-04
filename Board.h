@@ -132,7 +132,7 @@ void Board::MakeBoard(int boardSize)
 		for (int j = 0; j < boardSize; j++)
 		{
 			// find out what type of square the square will be
-			temp = rand() % 6;
+			temp = rand() % 5;
 
 			// put that type of square into the board matrix
 			switch(temp)
@@ -163,6 +163,10 @@ void Board::MakeBoard(int boardSize)
 
 		board.push_back(tempRow);
 	}
+	int x = rand() % size;
+	int y = rand() % size;
+	board[x][y].type = desert;
+	board[x][y].number = 7;
 }
 
 // does memory deallocation if necessary
@@ -174,88 +178,88 @@ void Board::CleanupBoard()
 // rolls the resource dice and gives the proper players resources
 void Board::RollResourceDice(Player currentPlayer)
 {
-	// for dice rolls between 2 and 12
-	int diceRoll = (rand() % 11) + 2;
-
-	// if the dice roll is 7, then do something different
-	if (diceRoll == 7)
+  // for dice rolls between 2 and 12
+  int diceRoll = (rand() % 11) + 2;
+  cout << "Rolled: " << diceRoll << endl;
+  // if the dice roll is 7, then do something different
+  if (diceRoll == 7)
+    {
+      // randomly discard cards from players with greater than 7 cards
+      RobberSteal();
+      // current player gets to move the robber
+      // decide where to move the robber to
+      int robberToX = 0;
+      int robberToY = 0;
+      /* Ryans stuff*/
+      //MoveRobber(robberToX, robberToY);
+    }
+  
+  // dole out the resources based on the roll of the dice
+  // iterate through each players, seeing if they have that number
+  for (unsigned int i = 0; i < allPlayers.size(); i++)
+    {
+      // check their ownings for the proper number
+      for (unsigned int j = 0; j < allPlayers[i].ownedSquares.size(); j++)
 	{
-		// randomly discard cards from players with greater than 7 cards
-		RobberSteal();
-		// current player gets to move the robber
-		// decide where to move the robber to
-		int robberToX = 0;
-		int robberToY = 0;
-		/* Ryans stuff*/
-		MoveRobber(robberToX, robberToY);
+	  // do the checking
+	  if (allPlayers[i].ownedSquares[j]->number == diceRoll)
+	    {
+	      // if it does equal the dice roll, add a card to their hand
+	      allPlayers[i].resourceHand.push_back(allPlayers[i].ownedSquares[j]->type);
+	    }
 	}
-
-	// dole out the resources based on the roll of the dice
-	// iterate through each players, seeing if they have that number
-	for (unsigned int i = 0; i < allPlayers.size(); i++)
-	{
-		// check their ownings for the proper number
-		for (unsigned int j = 0; j < allPlayers[i].ownedSquares.size(); j++)
-		{
-			// do the checking
-			if (allPlayers[i].ownedSquares[j]->number == diceRoll)
-			{
-				// if it does equal the dice roll, add a card to their hand
-				allPlayers[i].resourceHand.push_back(allPlayers[i].ownedSquares[j]->type);
-			}
-		}
-	}
+    }
 }
 
 // places a house for the given owner
 void Board::PlaceHouse(int currentPlayer, int x, int y)
 {
-	Player p = allPlayers[currentPlayer];
+  Player p = allPlayers[currentPlayer];
   int best=13;
   if(x == -1){
-		allPlayers[currentPlayer].victoryPoints++;
+    allPlayers[currentPlayer].victoryPoints++;
     vector<BoardSquare*> available;
     for(int i=0; i<size; i++){
       for(int j=0; j<size; j++){
-				if(board[i][j].hasTown == false && board[i][j].type != desert){
-	  			if(abs(board[i][j].number-7) < abs(best-7)){
+	if(board[i][j].hasTown == false && board[i][j].type != desert){
+	  if(abs(board[i][j].number-7) < abs(best-7)){
 	    			best = board[i][j].number;
-	  			}
-	  			available.push_back(&board[i][j]);
-				}
+	  }
+	  available.push_back(&board[i][j]);
+	}
       }
     }
     //cout << "Best: " << best << endl;
     for(unsigned int i=0; i<available.size(); i++){
       //cout << "number: " << available[i]->number << endl;
       if(available[i]->number == best){
-				if(p.ownedSquares.size() != 0){
-	  			if(p.ownedSquares[0]->type == available[i]->type){
-	    			continue;
-	  			} else {
-	    			available[i]->owner = currentPlayer;
-	    			available[i]->hasTown = true;
-	    			allPlayers[currentPlayer].ownedSquares.push_back(available[i]);
-	    			return;
-	  			}
-				} else {
-	  			available[i]->owner = currentPlayer;
-	  			available[i]->hasTown = true;
-	  			allPlayers[currentPlayer].ownedSquares.push_back(available[i]);
-	  			return;
-				}
+	if(p.ownedSquares.size() != 0){
+	  if(p.ownedSquares[0]->type == available[i]->type){
+	    continue;
+	  } else {
+	    available[i]->owner = currentPlayer;
+	    available[i]->hasTown = true;
+	    allPlayers[currentPlayer].ownedSquares.push_back(available[i]);
+	    return;
+	  }
+	} else {
+	  available[i]->owner = currentPlayer;
+	  available[i]->hasTown = true;
+	  allPlayers[currentPlayer].ownedSquares.push_back(available[i]);
+	  return;
+	}
       }
     }
     for(unsigned int i=0; i<available.size(); i++){
       if(p.ownedSquares.size() != 0){
-				if(p.ownedSquares[0]->type == available[i]->type){
-	  			continue;
-				} else {
-	  			available[i]->owner = currentPlayer;
-	  			available[i]->hasTown = true;
-	  			allPlayers[currentPlayer].ownedSquares.push_back(available[i]);
-	  			return;
-				}
+	if(p.ownedSquares[0]->type == available[i]->type){
+	  continue;
+	} else {
+	  available[i]->owner = currentPlayer;
+	  available[i]->hasTown = true;
+	  allPlayers[currentPlayer].ownedSquares.push_back(available[i]);
+	  return;
+	}
       }
     }
   } else {
@@ -263,15 +267,15 @@ void Board::PlaceHouse(int currentPlayer, int x, int y)
       board[x][y].owner = currentPlayer;
       board[x][y].hasTown = true;
       allPlayers[currentPlayer].ownedSquares.push_back(&board[x][y]);
-			allPlayers[currentPlayer].victoryPoints++;
-			return;
+      allPlayers[currentPlayer].victoryPoints++;
+      return;
     } else if(board[x][y].owner == currentPlayer){
       if(board[x][y].hasCity){
-				cout << "Error in placeHouse, square already has a city" << endl;
+	cout << "Error in placeHouse, square already has a city" << endl;
       } else {
-				board[x][y].hasCity = true;
-				allPlayers[currentPlayer].victoryPoints++;
-				return;
+	board[x][y].hasCity = true;
+	allPlayers[currentPlayer].victoryPoints++;
+	return;
       }
     } else if(board[x][y].owner != currentPlayer){
       cout << "Error in placeHouse, square owned by someone else" << endl;
@@ -282,7 +286,7 @@ void Board::PlaceHouse(int currentPlayer, int x, int y)
 // places a road for the given owner
 void Board::PlaceRoad(int currentPlayer, int x, int y, int z)
 {
-	if(x == -1){
+  if(x == -1){
     if(allPlayers[currentPlayer].ownedSquares.size() == 1){
       for(signed int i=0; i<size; i++){
 	for(signed int j=0; j<size; j++){
@@ -315,7 +319,7 @@ void Board::PlaceRoad(int currentPlayer, int x, int y, int z)
 		return;
 	      }
 	    }
-
+	    
 	  }
 	}
       }
@@ -352,7 +356,7 @@ void Board::PlaceRoad(int currentPlayer, int x, int y, int z)
 		return;
 	      }
 	    }
-
+	    
 	  }
 	}
       }
@@ -381,29 +385,29 @@ void Board::PlaceRoad(int currentPlayer, int x, int y, int z)
 // robber steals from players with 7 or more cards
 void Board::RobberSteal()
 {
-	// loop through and check every player
-	for (unsigned int i = 0; i < allPlayers.size(); i++)
+  // loop through and check every player
+  for (unsigned int i = 0; i < allPlayers.size(); i++)
+    {
+      // check how many cards they have
+      if (allPlayers[i].resourceHand.size() >= 7)
 	{
-		// check how many cards they have
-		if (allPlayers[i].resourceHand.size() >= 7)
-		{
-			// if they have 7 or more cards, discard half of their cards
-			for (unsigned int j = 0; j < allPlayers[i].resourceHand.size()/2; j++)
-			{
-				// discard half of their hand
-				allPlayers[i].resourceHand.erase(allPlayers[i].resourceHand.begin());
-			}
-		}
+	  // if they have 7 or more cards, discard half of their cards
+	  for (unsigned int j = 0; j < allPlayers[i].resourceHand.size()/2; j++)
+	    {
+	      // discard half of their hand
+	      allPlayers[i].resourceHand.erase(allPlayers[i].resourceHand.begin());
+	    }
 	}
+    }
 }
 
 // moves the robber to a certain spot on the board
 void Board::MoveRobber(int boardX, int boardY)
 {
-	board[robberX][robberY].hasRobber = false;
-	robberX = boardX;
-	robberY = boardY;
-	board[robberX][robberY].hasRobber = true;
+  board[robberX][robberY].hasRobber = false;
+  robberX = boardX;
+  robberY = boardY;
+  board[robberX][robberY].hasRobber = true;
 }
 
 

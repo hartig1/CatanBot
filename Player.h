@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <assert.h>
 using namespace std;
 
 #include "Enums.h"
@@ -15,6 +16,9 @@ public:
 	// constructor
 	Player();
 	void Print();
+	void Remove(int, Resource);
+	void AddDev();
+	void UseDev(DevelopmentCard d);
 	int victoryPoints;
 	vector <Resource> resourceHand;
 	vector <DevelopmentCard> developmentHand;
@@ -76,6 +80,50 @@ void Player::Print(){
   }
   cout << "------------------------------------------------" << endl;
   char x;
-  cin >> x;
+  //cin >> x;
 }
+void Player::Remove(int i, Resource r){
+  int size = resourceHand.size();
+  for(int x=0; x<size; x++){
+    assert(x>-1 && x<(int)resourceHand.size());
+    if(resourceHand[x] == r){
+      cout << "Removing: " << r << endl;
+      resourceHand.erase(resourceHand.begin()+x);
+      i--;
+      if(i<=0) return;
+    }
+    if(size != (int)resourceHand.size()){
+      x--;
+      size = resourceHand.size();
+    }
+  }
+}
+
+void Player::AddDev(){
+  int card = rand()%5;
+  if(card ==0){
+    developmentHand.push_back(monopoly);
+  } else if(card ==1){
+    developmentHand.push_back(yearOfPlenty);
+  } else if(card ==2){
+    developmentHand.push_back(roadBuilding);
+  } else if(card ==3){
+    developmentHand.push_back(knight);
+  } else if(card ==4){
+    victoryPoints++;
+  } else {
+    cout << "Error in player addDev" << endl;
+  }
+}
+
+void Player::UseDev(DevelopmentCard d){
+  for(unsigned int i=0; i<developmentHand.size(); i++){
+    if(developmentHand[i] == d){
+      developmentHand.erase(developmentHand.begin()+i);
+      return;
+    }
+  }
+  cout << "Development card did not exist, player.UserDev()" << endl;
+}
+
 #endif

@@ -42,7 +42,11 @@ BoardSquare::BoardSquare(Resource resourceType)
 	hasRobber = false;
 	owner = -1;
 	// randomly assign this a number from 2 to 12
-	number = (rand() % 11) + 2;
+	// but not 7 thats the robber tile only
+	number = (rand() % 6) + (rand() % 6) + 2;
+	while(number == 7 && type != desert){
+	  number = (rand() % 6) + (rand() % 6) + 2;
+	}
 }
 
 
