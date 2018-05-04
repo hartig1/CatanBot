@@ -30,8 +30,8 @@ public:
 	// rolls the dice and certain players collect their resources
 	void RollResourceDice();
 	// places a house and a road
-	void PlaceHouse(Owner currentPlayer);
-	void PlaceRoad(Owner currentPlayer);
+	void PlaceHouse(int currentPlayer);
+	void PlaceRoad(int currentPlayer);
 	
 	// size of one dimension of board (board is square)
 	int size;
@@ -237,25 +237,56 @@ void Board::RollResourceDice()
 	// iterate through each players, seeing if they have that number
 	for (unsigned int i = 0; i < allPlayers.size(); i++)
 	{
-//		for (unsigned int j = 0; )
+		// check their ownings for the proper number
+		for (unsigned int j = 0; j < allPlayers[i].ownedSquares.size(); j++)
+		{
+			// do the checking
+			if (allPlayers[i].ownedSquares[j]->number == diceRoll)
+			{
+				// if it does equal the dice roll, add a card to their hand
+				allPlayers[i].resourceHand.push_back(allPlayers[i].ownedSquares[j]->type);
+			}
+		}
 	}
 }
 
 // places a house for the given owner
-void Board::PlaceHouse(Owner currentPlayer)
+void Board::PlaceHouse(int currentPlayer, int x, int y)
 {
 	// decide where to place the house
 	/* Ryans stuff */
-	
+  vector<BoardSquare*> available;
+  for(int i=0; i<size; i++){
+    for(int j=0; j<size; j++){
+      if(board[i][j].hasTown == false){
+	available.push_back(&board[i][j]);
+      }
+    }
+  }
+  available[1]->owner = currentPlayer;
+  allPlayers[currentPlayer].ownedSquares.push_back(available[1]);
 	// place the house
 }
 
 // places a road for the given owner
-void Board::PlaceRoad(Owner currentPlayer)
+void Board::PlaceRoad(int currentPlayer)
 {
 	// decide where to place the road
 	/* Ryans stuff */
-	
+  vector<BoardSquare*> available;
+  for(int i=0; i<size; i++){
+    for(int j=0; j<size; j++){
+      if(board[i][j].owner == currentPlayer){
+	available.push_back(&board[i][j]);
+      }
+    }
+  }
+  for(unsigned int i=0; i<available.size(); i++){
+    if(available[i]->top.exists != true){
+      available[i]->top.exists = true;
+      available[i]->owner = currentPlayer;
+    }
+  }
 	// place the road
 }
 
