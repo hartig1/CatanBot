@@ -17,10 +17,6 @@ class Board
 public:
 	// constructor
 	Board();
-	// 2d vector that will hold all the board squares
-	vector<vector<BoardSquare> > board;
-	// a vector of all the players
-	vector<Player> allPlayers;
 	// creates the board, needed instead of a constructor
 	void MakeBoard(int size);
 	// prints out the board in graphical form
@@ -28,13 +24,24 @@ public:
 	// memory deallocation if necessary
 	void CleanupBoard();
 	// rolls the dice and certain players collect their resources
-	void RollResourceDice();
+	void RollResourceDice(Player currentPlayer);
 	// places a house and a road
 	void PlaceHouse(int currentPlayer, int x, int y);
 	void PlaceRoad(int currentPlayer, int x, int y, int z);
-	
+	// robber gets to steal from players with 7 or more cards
+	void RobberSteal();
+	// move the robber to a different square of the board
+	void MoveRobber(int boardX, int boardY);
+
+	// 2d vector that will hold all the board squares
+	vector<vector<BoardSquare> > board;
+	// a vector of all the players
+	vector<Player> allPlayers;
 	// size of one dimension of board (board is square)
 	int size;
+	// position of the robber on the board
+	int robberX;
+	int robberY;
 };
 
 Board::Board()
@@ -45,7 +52,7 @@ Board::Board()
 
 void Board::PrintBoard(void)
 {
-  for(int i=0; i<size*3+2; i++){
+	for(int i=0; i<size*3+2; i++){
     cout << "#";
   }
   cout << endl;
@@ -53,203 +60,74 @@ void Board::PrintBoard(void)
     cout << "#";
     for(int j=0; j<size; j++){
       if(board[i][j].top.exists){
-	cout << " | ";
+				cout << " | ";
       } else {
-	cout << "   ";
+				cout << "   ";
       }
     }
     cout << "#" <<endl << "#";
     for(int j=0; j<size; j++){
       if(board[i][j].left.exists){
-	cout << "-";
+				cout << "-";
       } else {
-	cout << " ";
+				cout << " ";
       }
-      //cout << "O";
-      switch(board[i][j].type)
-	{
-	case ore:
-	  cout << "O";
-	  break;
-	case wheat:
-	  cout << "W";
-	  break;
-	case sheep:
-	  cout << "S";
-	  break;
-	case brick:
-	  cout << "B";
-	  break;
-	case wood:
-	  cout << "T";
-	  break;
-	case desert:
-	  cout << "D";
-	  break;
-	default:
-	  cout << "\nSomething went wrong in PrintBoard\n";
-	}
-      //}
-
-      if(board[i][j].right.exists){
-	cout << "-";
-      } else {
-	cout << " ";
-      }
-    }
-    cout << "#" << endl << "#";
-    for(int j=0; j<size; j++){
-      if(board[i][j].bottom.exists){
-	cout << " | ";
-      } else {
-	cout << "   ";
-      }
-    }
+      switch(board[i][j].type){
+				case ore:
+	  			cout << "O";
+	  			break;
+				case wheat:
+	  			cout << "W";
+	  			break;
+				case sheep:
+	  			cout << "S";
+	  			break;
+				case brick:
+	  			cout << "B";
+	  			break;
+				case wood:
+	  			cout << "T";
+	  			break;
+				case desert:
+	  			cout << "D";
+	  			break;
+				default:
+	  			cout << "\nSomething went wrong in PrintBoard\n";
+				}
+  		if(board[i][j].right.exists){
+				cout << "-";
+  		} else {
+				cout << " ";
+  		}
+		}
+		cout << "#" << endl << "#";
+		for(int j=0; j<size; j++){
+			if(board[i][j].bottom.exists){
+				cout << " | ";
+			} else {
+				cout << "   ";
+			}
+		}
     cout << "#" << endl;
   }
   for(int i=0; i<size*3+2; i++){
     cout << "#";
   }
   cout << endl;
-	// iterate through every row of the board
-	/*for (int i = 0; i < size*2+3; i++)
-	{
-		// iterate through every square of the board
-		for (int j = 0; j < size*2+3; j++)
-		{
-			// formattinng, only on the top and bottom row
-			if (i == 0 || i == size*2 + 2)
-			{
-				cout << "#";
-			}
-			// formatting in the right and left column
-			else if (j == 0 || j == size*2 + 2)
-			{
-				cout << "#";
-			}
-			
-			// add in the left most column that is not sea
-			else if (j == 1)
-			{
-				// only check the squares that have a tile next to them
-				if (i % 2 == 0)
-				{
-					// this if has to be here to avoid segfaulting
-					if (board[i/2-1][j/2-1].left.exists)
-					{
-						cout << "-";
-					}
-					// if it doesnt exist, use the empty identifier " "
-					else
-					{
-						cout << " ";
-					}
-				}
-				
-				// if it does not have a tile next to it, just print " "
-				else
-				{
-					cout << " ";
-				}
-			}
-			
-			// add in the bottom most row that is not sea
-			else if (i == size*2 + 1)
-			{
-				// only check the squares that have a tile above them
-				if (j % 2 == 0)
-				{
-					// this if has to be here to avoid segfaulting
-					if (board[i/2-1][j/2-1].bottom.exists)
-					{
-						cout << "|";
-					}
-					// if it doesnt exist, use the empty identifier " "
-					else
-					{
-						cout << " ";
-					}
-				}
-				
-				// if it does not have a tile next to it, just print " "
-				else
-				{
-					cout << " ";
-				}
-			}
-
-			// just the tiles and the other roads
-			else
-			{
-				// add in the squares
-				if (i % 2 == 0 && j % 2 == 0)
-				{
-					// case switch depending on what the tile type is
-					switch(board[(i/2-1)][(j/2-1)].type)
-					{
-						case ore:
-							cout << "O";
-							break;
-						case wheat:
-							cout << "W";
-							break;
-						case sheep:
-							cout << "S";
-							break;
-						case brick:
-							cout << "B";
-							break;
-						case wood:
-							cout << "T";
-							break;
-						case desert:
-							cout << "D";
-							break;
-						default:
-							cout << "\nSomething went wrong in PrintBoard\n";
-					}
-				}
-				else
-				{
-					// This will check for the vertical roads. Check to see if a road exists here
-					if ((j % 2 == 0) && (board[i/2][j/2].top.exists))
-					{
-						cout << "|";
-					}
-					
-					// this will check for the horizontal roads
-					else if ((i % 2 == 0) && (board[i/2-1][j/2-1].right.exists))
-					{
-						cout << "-";
-					}
-					
-					// no road is possible, so put the default space here
-					else
-					{
-						cout << " ";
-					}
-				}
-			}
-		}
-
-		// finish the row
-		cout << endl;
-	}*/
 }
-
 // creates the board full of squares
 void Board::MakeBoard(int boardSize)
 {
 	// store the size of the board
 	size = boardSize;
-	
+
 	int temp;
 	// rows of board
 	for (int i = 0; i < boardSize; i++)
 	{
 		// creates the row to add to the board
 		vector<BoardSquare> tempRow;
-		
+
 		// columns of board
 		for (int j = 0; j < boardSize; j++)
 		{
@@ -282,7 +160,7 @@ void Board::MakeBoard(int boardSize)
 
 			}
 		}
-		
+
 		board.push_back(tempRow);
 	}
 }
@@ -294,10 +172,23 @@ void Board::CleanupBoard()
 }
 
 // rolls the resource dice and gives the proper players resources
-void Board::RollResourceDice()
+void Board::RollResourceDice(Player currentPlayer)
 {
 	// for dice rolls between 2 and 12
 	int diceRoll = (rand() % 11) + 2;
+
+	// if the dice roll is 7, then do something different
+	if (diceRoll == 7)
+	{
+		// randomly discard cards from players with greater than 7 cards
+		RobberSteal();
+		// current player gets to move the robber
+		// decide where to move the robber to
+		int robberToX = 0;
+		int robberToY = 0;
+		/* Ryans stuff*/
+		MoveRobber(robberToX, robberToY);
+	}
 
 	// dole out the resources based on the roll of the dice
 	// iterate through each players, seeing if they have that number
@@ -319,66 +210,68 @@ void Board::RollResourceDice()
 // places a house for the given owner
 void Board::PlaceHouse(int currentPlayer, int x, int y)
 {
-	// decide where to place the house
-	/* Ryans stuff */
-  Player p = allPlayers[currentPlayer];
+	Player p = allPlayers[currentPlayer];
   int best=13;
   if(x == -1){
+		allPlayers[currentPlayer].victoryPoints++;
     vector<BoardSquare*> available;
     for(int i=0; i<size; i++){
       for(int j=0; j<size; j++){
-	if(board[i][j].hasTown == false && board[i][j].type != desert){
-	  if(abs(board[i][j].number-7) < abs(best-7)){
-	    best = board[i][j].number;
-	  }
-	  available.push_back(&board[i][j]);
-	}
+				if(board[i][j].hasTown == false && board[i][j].type != desert){
+	  			if(abs(board[i][j].number-7) < abs(best-7)){
+	    			best = board[i][j].number;
+	  			}
+	  			available.push_back(&board[i][j]);
+				}
       }
     }
     //cout << "Best: " << best << endl;
     for(unsigned int i=0; i<available.size(); i++){
       //cout << "number: " << available[i]->number << endl;
       if(available[i]->number == best){
-	if(p.ownedSquares.size() != 0){
-	  if(p.ownedSquares[0]->type == available[i]->type){
-	    continue;
-	  } else {
-	    available[i]->owner = currentPlayer;
-	    available[i]->hasTown = true;
-	    allPlayers[currentPlayer].ownedSquares.push_back(available[i]);
-	    return;
-	  }    
-	} else {
-	  available[i]->owner = currentPlayer;
-	  available[i]->hasTown = true;
-	  allPlayers[currentPlayer].ownedSquares.push_back(available[i]);
-	  return;
-	}
+				if(p.ownedSquares.size() != 0){
+	  			if(p.ownedSquares[0]->type == available[i]->type){
+	    			continue;
+	  			} else {
+	    			available[i]->owner = currentPlayer;
+	    			available[i]->hasTown = true;
+	    			allPlayers[currentPlayer].ownedSquares.push_back(available[i]);
+	    			return;
+	  			}
+				} else {
+	  			available[i]->owner = currentPlayer;
+	  			available[i]->hasTown = true;
+	  			allPlayers[currentPlayer].ownedSquares.push_back(available[i]);
+	  			return;
+				}
       }
     }
     for(unsigned int i=0; i<available.size(); i++){
       if(p.ownedSquares.size() != 0){
-	if(p.ownedSquares[0]->type == available[i]->type){
-	  continue;
-	} else {
-	  available[i]->owner = currentPlayer;
-	  available[i]->hasTown = true;
-	  allPlayers[currentPlayer].ownedSquares.push_back(available[i]);
-	  return;
-	}
+				if(p.ownedSquares[0]->type == available[i]->type){
+	  			continue;
+				} else {
+	  			available[i]->owner = currentPlayer;
+	  			available[i]->hasTown = true;
+	  			allPlayers[currentPlayer].ownedSquares.push_back(available[i]);
+	  			return;
+				}
       }
     }
-    // place the house
   } else {
     if(board[x][y].owner == -1){
       board[x][y].owner = currentPlayer;
       board[x][y].hasTown = true;
       allPlayers[currentPlayer].ownedSquares.push_back(&board[x][y]);
+			allPlayers[currentPlayer].victoryPoints++;
+			return;
     } else if(board[x][y].owner == currentPlayer){
       if(board[x][y].hasCity){
-	cout << "Error in placeHouse, square already has a city" << endl;
+				cout << "Error in placeHouse, square already has a city" << endl;
       } else {
-	board[x][y].hasCity = true;
+				board[x][y].hasCity = true;
+				allPlayers[currentPlayer].victoryPoints++;
+				return;
       }
     } else if(board[x][y].owner != currentPlayer){
       cout << "Error in placeHouse, square owned by someone else" << endl;
@@ -389,9 +282,7 @@ void Board::PlaceHouse(int currentPlayer, int x, int y)
 // places a road for the given owner
 void Board::PlaceRoad(int currentPlayer, int x, int y, int z)
 {
-	// decide where to place the road
-	/* Ryans stuff */
-  if(x == -1){
+	if(x == -1){
     if(allPlayers[currentPlayer].ownedSquares.size() == 1){
       for(signed int i=0; i<size; i++){
 	for(signed int j=0; j<size; j++){
@@ -485,6 +376,34 @@ void Board::PlaceRoad(int currentPlayer, int x, int y, int z)
       cout << "Error in place road, invalid z(road directio)" << endl;
     }
   }
+}
+
+// robber steals from players with 7 or more cards
+void Board::RobberSteal()
+{
+	// loop through and check every player
+	for (unsigned int i = 0; i < allPlayers.size(); i++)
+	{
+		// check how many cards they have
+		if (allPlayers[i].resourceHand.size() >= 7)
+		{
+			// if they have 7 or more cards, discard half of their cards
+			for (unsigned int j = 0; j < allPlayers[i].resourceHand.size()/2; j++)
+			{
+				// discard half of their hand
+				allPlayers[i].resourceHand.erase(allPlayers[i].resourceHand.begin());
+			}
+		}
+	}
+}
+
+// moves the robber to a certain spot on the board
+void Board::MoveRobber(int boardX, int boardY)
+{
+	board[robberX][robberY].hasRobber = false;
+	robberX = boardX;
+	robberY = boardY;
+	board[robberX][robberY].hasRobber = true;
 }
 
 

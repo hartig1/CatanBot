@@ -24,6 +24,8 @@ Road::Road(void)
 {
 	// originally, this road does not exist
 	exists = false;
+	// no one owns this road
+	owner = -1;
 }
 
 

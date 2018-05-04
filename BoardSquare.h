@@ -31,16 +31,15 @@ public:
 	Resource type;
 	// what the number of the tile is
 	int number;
-	// whether or not the square contains the robber
 	bool hasRobber;
 };
 
 BoardSquare::BoardSquare(Resource resourceType)
 {
 	type = resourceType;
-	hasRobber = false;
 	hasTown = false;
 	hasCity = false;
+	hasRobber = false;
 	owner = -1;
 	// randomly assign this a number from 2 to 12
 	number = (rand() % 11) + 2;

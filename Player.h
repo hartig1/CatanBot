@@ -77,5 +77,5 @@ void Player::Print(){
   cout << "------------------------------------------------" << endl;
   char x;
   cin >> x;
-} 
+}
 #endif

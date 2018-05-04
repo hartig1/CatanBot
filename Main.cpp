@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
 		// return error?
 		return -1;
 	}
-	
+
 	else
 	{
 		// convert the size of the board to int
@@ -45,28 +45,28 @@ int main(int argc, char *argv[])
 		istringstream ss(argv[1]);
 		int size;
 		if (!(ss >> size)) cerr << "Invalid number " << argv[1] << '\n';
-		
+
 		// convert the player number to an int
 		istringstream ss2(argv[2]);
 		int playerNum;
 		if (!(ss2 >> playerNum)) cerr << "Invalid number " << argv[2] << '\n';
-		
+
 		// need to create the board
 		board.MakeBoard(size);
-		
+
 		// just for testing
 		board.PrintBoard();
-		
+
 		// create a vector of all the players (for now just 4)
 		for (int i = 0; i < playerNum; i++)
 		{
 			board.allPlayers.push_back(Player());
 			board.allPlayers[i].playerID = i;
 		}
-		
+
 		// run the first turn where every player gets two settlements and two roads
 		RunFirstTurn();
-		
+
 		// holds whether or not to end the game
 		bool done = false;
 		// runs a single turn, forever in the while loop
@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
 				}
 			}
 		}
-		
+
 		// clean up any memory allocation from the board
 		board.CleanupBoard();
 		return 0;
@@ -96,16 +96,17 @@ void RunFirstTurn(void)
 	for (unsigned int i = 0; i < board.allPlayers.size(); i++)
 	{
 		// current player gets to place a house and a road
-	  board.PlaceHouse(i,-1,-1);
-	  board.PlaceRoad(i,-1,-1,-1);
+		board.PlaceHouse(i,-1,-1);
+		//-1 signifies a first turn placement
+		board.PlaceRoad(i,-1,-1,-1);
 	}
-	
+
 	// now do the same thing again
 	for (unsigned int i = 0; i < board.allPlayers.size(); i++)
-	  {
+	{
 		// current player gets to place a house and a road
-	    board.PlaceHouse(i,-1,-1);
-	    board.PlaceRoad(i,-1,-1,-1);
+		board.PlaceHouse(i,-1,-1);
+		board.PlaceRoad(i,-1,-1,-1);
 	}
 	board.PrintBoard();
 }
@@ -118,7 +119,7 @@ void RunTurn(void)
 	  Player p = board.allPlayers[i];
 	  p.Print();
 		// first, roll the die and see who gets what
-		board.RollResourceDice();
+		board.RollResourceDice(board.allPlayers[i]);
 		vector<int> turn;
 		bool road = false;
 		bool settlement = false;
