@@ -26,7 +26,7 @@ public:
 	// whether or not the square contains a city
 	bool hasCity;
 	// who owns this board square
-	Owner owner;
+	int owner;
 	//what type of resource this board square is
 	Resource type;
 	// what the number of the tile is
@@ -41,7 +41,7 @@ BoardSquare::BoardSquare(Resource resourceType)
 	hasRobber = false;
 	hasTown = false;
 	hasCity = false;
-	owner = nobody;
+	owner = -1;
 	// randomly assign this a number from 2 to 12
 	number = (rand() % 11) + 2;
 }

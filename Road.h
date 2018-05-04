@@ -16,7 +16,7 @@ public:
 	// whether this road exists or not
 	bool exists;
 	// who owns this road
-	Owner owner;
+	int owner;
 };
 
 // constructor
