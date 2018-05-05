@@ -26,11 +26,15 @@ public:
 	vector <BoardSquare *> ownedSquares;
 	// just in case, "enumeration" of the player
 	int playerID;
+	int armySize;
+	int roadSize;
 };
 
 Player::Player()
 {
 	victoryPoints = 0;
+	armySize = 0;
+	roadSize = 0;
 }
 void Player::Print(){
   cout << "------------------------------------------------" << endl;
@@ -64,6 +68,9 @@ void Player::Print(){
   }
   cout << endl;
   for(unsigned int i=0; i<ownedSquares.size(); i++){
+    if(ownedSquares[i]->hasCity){
+      cout << "City ";
+    }
     if(ownedSquares[i]->type == ore){
       cout << "Ore tile: " << ownedSquares[i]->number << endl;
     } else if(ownedSquares[i]->type == wheat){

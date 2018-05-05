@@ -42,17 +42,25 @@ public:
 	// position of the robber on the board
 	int robberX;
 	int robberY;
+	int biggestArmy;
+	int biggestRoad;
+	int biggestArmyOwner;
+	int biggestRoadOwner;
 };
 
 Board::Board()
 {
 	// initialize random number generator
 	srand(time(NULL));
+	biggestArmy = 2; //players must have more than 2 knights to have biggest army
+	biggestRoad = 4; //players must have more than 4 roads to have biggest road
+	biggestArmyOwner = -1;
+	biggestRoadOwner = -1;
 }
 
 void Board::PrintBoard(void)
 {
-	for(int i=0; i<size*3+2; i++){
+  for(int i=0; i<size*3+2; i++){
     cout << "#";
   }
   cout << endl;
@@ -72,42 +80,46 @@ void Board::PrintBoard(void)
       } else {
 				cout << " ";
       }
-      switch(board[i][j].type){
-				case ore:
-	  			cout << "O";
-	  			break;
-				case wheat:
-	  			cout << "W";
-	  			break;
-				case sheep:
-	  			cout << "S";
-	  			break;
-				case brick:
-	  			cout << "B";
-	  			break;
-				case wood:
-	  			cout << "T";
-	  			break;
-				case desert:
-	  			cout << "D";
-	  			break;
-				default:
-	  			cout << "\nSomething went wrong in PrintBoard\n";
-				}
-  		if(board[i][j].right.exists){
-				cout << "-";
-  		} else {
-				cout << " ";
-  		}
-		}
-		cout << "#" << endl << "#";
-		for(int j=0; j<size; j++){
-			if(board[i][j].bottom.exists){
-				cout << " | ";
-			} else {
-				cout << "   ";
-			}
-		}
+      if(board[i][j].hasRobber){
+	cout << "R";
+      } else {
+	switch(board[i][j].type){
+	case ore:
+	  cout << "O";
+	  break;
+	case wheat:
+	  cout << "W";
+	  break;
+	case sheep:
+	  cout << "S";
+	  break;
+	case brick:
+	  cout << "B";
+	  break;
+	case wood:
+	  cout << "T";
+	  break;
+	case desert:
+	  cout << "D";
+	  break;
+	default:
+	  cout << "\nSomething went wrong in PrintBoard\n";
+	}
+      }
+      if(board[i][j].right.exists){
+	cout << "-";
+      } else {
+	cout << " ";
+      }
+    }
+    cout << "#" << endl << "#";
+    for(int j=0; j<size; j++){
+      if(board[i][j].bottom.exists){
+	cout << " | ";
+      } else {
+	cout << "   ";
+      }
+    }
     cout << "#" << endl;
   }
   for(int i=0; i<size*3+2; i++){
@@ -115,7 +127,7 @@ void Board::PrintBoard(void)
   }
   cout << endl;
 }
-// creates the board full of squares
+  // creates the board full of squares
 void Board::MakeBoard(int boardSize)
 {
 	// store the size of the board
@@ -165,8 +177,11 @@ void Board::MakeBoard(int boardSize)
 	}
 	int x = rand() % size;
 	int y = rand() % size;
+	robberX = x;
+	robberY = y;
 	board[x][y].type = desert;
 	board[x][y].number = 7;
+	board[x][y].hasRobber = true;
 }
 
 // does memory deallocation if necessary
@@ -182,18 +197,31 @@ void Board::RollResourceDice(Player currentPlayer)
   int diceRoll = (rand() % 11) + 2;
   cout << "Rolled: " << diceRoll << endl;
   // if the dice roll is 7, then do something different
-  if (diceRoll == 7)
-    {
-      // randomly discard cards from players with greater than 7 cards
-      RobberSteal();
-      // current player gets to move the robber
-      // decide where to move the robber to
-      int robberToX = 0;
-      int robberToY = 0;
-      /* Ryans stuff*/
-      //MoveRobber(robberToX, robberToY);
+  if (diceRoll == 7){
+    // randomly discard cards from players with greater than 7 cards
+    RobberSteal();
+    // current player gets to move the robber
+    // decide where to move the robber to
+    int winning;
+    int winningVP=0;
+    for(unsigned int i=0; i<allPlayers.size(); i++){
+      if((int)i != currentPlayer.playerID && allPlayers[i].victoryPoints > winningVP){
+	winning =i;
+	winningVP = allPlayers[i].victoryPoints;
+      }
     }
-  
+    for(int i=0; i<size; i++){
+      for(int j=0; j<size; j++){
+	if(board[i][j].owner == winning){
+	  board[robberX][robberY].hasRobber = false;
+	  board[i][j].hasRobber = true;
+	  robberX = i;
+	  robberY = j;
+	}
+      }
+    }
+    //PrintBoard();
+  }
   // dole out the resources based on the roll of the dice
   // iterate through each players, seeing if they have that number
   for (unsigned int i = 0; i < allPlayers.size(); i++)
@@ -319,12 +347,11 @@ void Board::PlaceRoad(int currentPlayer, int x, int y, int z)
 		return;
 	      }
 	    }
-	    
+
 	  }
 	}
       }
-    }
-    if(allPlayers[currentPlayer].ownedSquares.size() == 2){
+    } if(allPlayers[currentPlayer].ownedSquares.size() == 2){
       for(signed int i=0; i<size; i++){
 	for(signed int j=0; j<size; j++){
 	  if(board[i][j].owner == currentPlayer){
@@ -356,7 +383,7 @@ void Board::PlaceRoad(int currentPlayer, int x, int y, int z)
 		return;
 	      }
 	    }
-	    
+
 	  }
 	}
       }
