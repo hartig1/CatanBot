@@ -35,6 +35,7 @@ void UseKnight(int currentPlayer);
 bool canBuildCity(int currentPlayer);
 bool canBuildTown(int currentPlayer);
 int cityProg(int currentPlayer); //returns the number of resourced the user has that can be used in building a city
+void trade(int currentPlayer, Resource r1, Resource r2);
 int townProg(int currentPlayer);
 int roadProg(int currentPlayer);
 void buildCity(int currentPlayer);
@@ -205,6 +206,31 @@ void RunTurn(void)
       dev = true;
       turn.push_back(8); //can make dev card
     }
+    if(canBuildTown(i) && townProg(i) == 4){
+      buildTown(i);
+    } else if(canBuildTown(i) && townProg(i) == 2 && year>=1){
+      if(brick1 == 0 && wood1 == 0){
+	UseYOP(i, brick, wood);
+	buildTown(i);
+      } else if(brick1 == 0 && wheat1 == 0){
+	UseYOP(i,brick,wheat);
+	buildTown(i);
+      } else if(brick1 == 0 && sheep1 == 0){
+	UseYOP(i,brick,sheep);
+	buildTown(i);
+      } else if(wood1 == 0 && wheat1 == 0){
+	UseYOP(i,wood,wheat);
+	buildTown(i);
+      } else if(wood1 == 0 && sheep1 == 0){
+	UseYOP(i,wood,sheep);
+	buildTown(i);
+      } else if(wheat1 == 0 && sheep1 == 0){
+	UseYOP(i,wheat,sheep);
+	buildTown(i);
+      } else {
+	cout << "Error in using yop to build a town" << endl;
+      }
+    }
     if(canBuildCity(i) && cityProg(i) ==5){
       buildCity(i);
     } else if(canBuildCity(i) && cityProg(i) == 4 && (tradeWo + tradeB + tradeS) >=1){
@@ -359,6 +385,26 @@ void RunTurn(void)
 	}
       }
     }
+    if(tradeO >= 1){
+      Resource randomResource = (Resource)(rand() %5);
+      trade(i,ore,randomResource);
+    }
+    if(tradeWh >= 1){      
+      Resource randomResource = (Resource)(rand() %5);
+      trade(i,wheat,randomResource);
+    }
+    if(tradeWo >= 1){
+      Resource randomResource = (Resource)(rand() %5);
+      trade(i,wood,randomResource);
+    }
+    if(tradeS >= 1){
+      Resource randomResource = (Resource)(rand() %5);
+      trade(i,sheep,randomResource);
+    }
+    if(tradeB >= 1){
+      Resource randomResource = (Resource)(rand() %5);
+      trade(i,brick,randomResource);
+    }      
   }
 }
 void UseMon(int currentPlayer, Resource r){
@@ -629,6 +675,11 @@ bool canBuildTown(int currentPlayer){
   }
   return false;
 }
+ void trade(int currentPlayer, Resource r1, Resource r2){
+   //trade 3 r1 for 1 r2
+   board.allPlayers[currentPlayer].Remove(3,r1);
+   board.allPlayers[currentPlayer].resourceHand.push_back(r2);
+ }
 int cityProg(int currentPlayer){
   int brick1=0, wheat1=0;
   for(unsigned int i=0; i<board.allPlayers[currentPlayer].resourceHand.size(); i++){
@@ -711,62 +762,258 @@ void buildCity(int currentPlayer){
   cout << "Unable to build city no spaces available" << endl;
 }
 void buildTown(int currentPlayer){
+  //giant mess of conditions to ensure we don't access memory out of the vector
   for(int i=0; i<board.size; i++){
     for(int j=0; j<board.size; j++){
-      try{
+      if(i != 0 && i != board.size-1 && j != 0 and j != board.size-1){
 	if(board.board[i][j].owner == currentPlayer){
 	  if(board.board[i][j].top.owner == currentPlayer){
-	    if(board.board[i][j-1].owner == -1){
-	      board.board[i][j-1].owner = currentPlayer;
+	    if(board.board[i][j-1].owner == -1 && board.board[i][j-1].type != desert){
 	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i][j-1]);
-	      board.allPlayers[currentPlayer].victoryPoints++;
-	      board.allPlayers[currentPlayer].Remove(1,sheep);
-	      board.allPlayers[currentPlayer].Remove(1,wood);
-	      board.allPlayers[currentPlayer].Remove(1,brick);
-	      board.allPlayers[currentPlayer].Remove(1,wheat);
+	      board.board[i][j-1].owner = currentPlayer;
 	      return;
 	    }
 	  }
 	  if(board.board[i][j].right.owner == currentPlayer){
-	    if(board.board[i+1][j].owner == -1){
-	      board.board[i+1][j].owner = currentPlayer;
-	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i+1][j]);
-	      board.allPlayers[currentPlayer].victoryPoints++;
-	      board.allPlayers[currentPlayer].Remove(1,sheep);
-	      board.allPlayers[currentPlayer].Remove(1,wood);
-	      board.allPlayers[currentPlayer].Remove(1,brick);
-	      board.allPlayers[currentPlayer].Remove(1,wheat);
+	    if(board.board[i][j+1].owner == -1 && board.board[i][j+1].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i][j+1]);
+	      board.board[i][j+1].owner = currentPlayer;
 	      return;
 	    }
 	  }
 	  if(board.board[i][j].bottom.owner == currentPlayer){
-	    if(board.board[i][j+1].owner == -1){
-	      board.board[i][j+1].owner = currentPlayer;
-	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i][j+1]);
-	      board.allPlayers[currentPlayer].victoryPoints++;
-	      board.allPlayers[currentPlayer].Remove(1,sheep);
-	      board.allPlayers[currentPlayer].Remove(1,wood);
-	      board.allPlayers[currentPlayer].Remove(1,brick);
-	      board.allPlayers[currentPlayer].Remove(1,wheat);
+	    if(board.board[i+1][j].owner == -1 && board.board[i+1][j].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i+1][j]);
+	      board.board[i+1][j].owner = currentPlayer;
 	      return;
 	    }
 	  }
 	  if(board.board[i][j].left.owner == currentPlayer){
-	    if(board.board[i-1][j].owner == -1){
-	      board.board[i-1][j].owner = currentPlayer;
-	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i-1][j]);
-	      board.allPlayers[currentPlayer].victoryPoints++;
-	      board.allPlayers[currentPlayer].Remove(1,sheep);
-	      board.allPlayers[currentPlayer].Remove(1,wood);
-	      board.allPlayers[currentPlayer].Remove(1,brick);
-	      board.allPlayers[currentPlayer].Remove(1,wheat);
+	    if(board.board[i][j-1].owner == -1 && board.board[i][j-1].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i][j-1]);
+	      board.board[i][j-1].owner = currentPlayer;
 	      return;
 	    }
 	  }
 	}
-      } catch(...){
-	continue;
+      } else if(i == 0){
+	if(j == 0){
+	  if(board.board[i][j].right.owner == currentPlayer){
+	    if(board.board[i][j+1].owner == -1 && board.board[i][j+1].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i][j+1]);
+	      board.board[i][j+1].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	  if(board.board[i][j].bottom.owner == currentPlayer){
+	    if(board.board[i+1][j].owner == -1 && board.board[i+1][j].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i+1][j]);
+	      board.board[i+1][j].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	} else if(j == board.size-1){
+	  if(board.board[i][j].left.owner == currentPlayer){
+	    if(board.board[i][j-1].owner == -1 && board.board[i][j-1].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i][j-1]);
+	      board.board[i][j-1].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	  if(board.board[i][j].bottom.owner == currentPlayer){
+	    if(board.board[i+1][j].owner == -1 && board.board[i+1][j].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i+1][j]);
+	      board.board[i+1][j].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	} else {
+	  if(board.board[i][j].right.owner == currentPlayer){
+	    if(board.board[i][j+1].owner == -1 && board.board[i][j+1].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i][j+1]);
+	      board.board[i][j+1].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	  if(board.board[i][j].left.owner == currentPlayer){
+	    if(board.board[i][j-1].owner == -1 && board.board[i][j-1].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i][j-1]);
+	      board.board[i][j-1].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	  if(board.board[i][j].bottom.owner == currentPlayer){
+	    if(board.board[i+1][j].owner == -1 && board.board[i+1][j].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i+1][j]);
+	      board.board[i+1][j].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	}	  
+      } else if(i == board.size-1){
+	if(j == 0){
+	  if(board.board[i][j].right.owner == currentPlayer){
+	    if(board.board[i][j+1].owner == -1 && board.board[i][j+1].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i][j+1]);
+	      board.board[i][j+1].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	  if(board.board[i][j].top.owner == currentPlayer){
+	    if(board.board[i-1][j].owner == -1 && board.board[i-1][j].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i-1][j]);
+	      board.board[i-1][j].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	} else if(j == board.size-1){
+	  if(board.board[i][j].left.owner == currentPlayer){
+	    if(board.board[i][j-1].owner == -1 && board.board[i][j-1].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i][j-1]);
+	      board.board[i][j-1].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	  if(board.board[i][j].top.owner == currentPlayer){
+	    if(board.board[i-1][j].owner == -1 && board.board[i-1][j].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i-1][j]);
+	      board.board[i-1][j].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	} else {
+	  if(board.board[i][j].left.owner == currentPlayer){
+	    if(board.board[i][j-1].owner == -1 && board.board[i][j-1].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i][j-1]);
+	      board.board[i][j-1].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	  if(board.board[i][j].top.owner == currentPlayer){
+	    if(board.board[i-1][j].owner == -1 && board.board[i-1][j].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i-1][j]);
+	      board.board[i-1][j].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	  if(board.board[i][j].right.owner == currentPlayer){
+	    if(board.board[i][j+1].owner == -1 && board.board[i][j+1].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i][j+1]);
+	      board.board[i][j+1].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	}	  
+      } else if(j == 0){
+	if(i == 0){
+	  if(board.board[i][j].right.owner == currentPlayer){
+	    if(board.board[i][j+1].owner == -1 && board.board[i][j+1].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i][j+1]);
+	      board.board[i][j+1].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	  if(board.board[i][j].bottom.owner == currentPlayer){
+	    if(board.board[i+1][j].owner == -1 && board.board[i+1][j].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i+1][j]);
+	      board.board[i+1][j].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	} else if(i == board.size-1){
+	  if(board.board[i][j].right.owner == currentPlayer){
+	    if(board.board[i][j+1].owner == -1 && board.board[i][j+1].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i][j+1]);
+	      board.board[i][j+1].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	  if(board.board[i][j].top.owner == currentPlayer){
+	    if(board.board[i-1][j].owner == -1 && board.board[i-1][j].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i-1][j]);
+	      board.board[i-1][j].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	} else {
+	  if(board.board[i][j].right.owner == currentPlayer){
+	    if(board.board[i][j+1].owner == -1 && board.board[i][j+1].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i][j+1]);
+	      board.board[i][j+1].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	  if(board.board[i][j].top.owner == currentPlayer){
+	    if(board.board[i-1][j].owner == -1 && board.board[i-1][j].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i-1][j]);
+	      board.board[i-1][j].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	  if(board.board[i][j].bottom.owner == currentPlayer){
+	    if(board.board[i+1][j].owner == -1 && board.board[i+1][j].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i+1][j]);
+	      board.board[i+1][j].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	}
+      } else if(j == board.size-1){
+	if(i == 0){
+	  if(board.board[i][j].bottom.owner == currentPlayer){
+	    if(board.board[i+1][j].owner == -1 && board.board[i+1][j].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i+1][j]);
+	      board.board[i+1][j].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	  if(board.board[i][j].left.owner == currentPlayer){
+	    if(board.board[i][j-1].owner == -1 && board.board[i][j-1].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i][j-1]);
+	      board.board[i][j-1].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	} else if(i == board.size-1){
+	  if(board.board[i][j].top.owner == currentPlayer){
+	    if(board.board[i-1][j].owner == -1 && board.board[i-1][j].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i-1][j]);
+	      board.board[i-1][j].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	  if(board.board[i][j].left.owner == currentPlayer){
+	    if(board.board[i][j-1].owner == -1 && board.board[i][j-1].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i][j-1]);
+	      board.board[i][j-1].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	} else {
+	  if(board.board[i][j].left.owner == currentPlayer){
+	    if(board.board[i][j-1].owner == -1 && board.board[i][j-1].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i][j-1]);
+	      board.board[i][j-1].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	  if(board.board[i][j].top.owner == currentPlayer){
+	    if(board.board[i-1][j].owner == -1 && board.board[i-1][j].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i-1][j]);
+	      board.board[i-1][j].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	  if(board.board[i][j].bottom.owner == currentPlayer){
+	    if(board.board[i+1][j].owner == -1 && board.board[i+1][j].type != desert){
+	      board.allPlayers[currentPlayer].ownedSquares.push_back(&board.board[i+1][j]);
+	      board.board[i+1][j].owner = currentPlayer;
+	      return;
+	    }
+	  }
+	}
       }
     }
   }
+  return;
 }
