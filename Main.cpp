@@ -205,7 +205,6 @@ void RunTurn(void)
       dev = true;
       turn.push_back(8); //can make dev card
     }
-    cerr << "Here" <<endl;
     if(canBuildCity(i) && cityProg(i) ==5){
       buildCity(i);
     } else if(canBuildCity(i) && cityProg(i) == 4 && (tradeWo + tradeB + tradeS) >=1){
@@ -431,7 +430,6 @@ void UseKnight(int currentPlayer){
   cout << "Something went wrong in UseKnight" << endl;
 }
 bool canBuildCity(int currentPlayer){
-  cerr << "here2" << endl;
   for(unsigned int i=0; i<board.allPlayers[currentPlayer].ownedSquares.size(); i++){
     if(!board.allPlayers[currentPlayer].ownedSquares[i]->hasCity){
       return true;
@@ -440,51 +438,198 @@ bool canBuildCity(int currentPlayer){
   return false;
 }
 bool canBuildTown(int currentPlayer){
-  cerr << "here4" << endl;
+  //giant mess of conditions to ensure we don't access memory out of the vector
   for(int i=0; i<board.size; i++){
     for(int j=0; j<board.size; j++){
-      //non edge cases
-      //if(i != 0 && i != board.size-1 && j != 0 and j != board.size-1){
-      try{
-	cerr << "here6" << endl;
+      if(i != 0 && i != board.size-1 && j != 0 and j != board.size-1){
 	if(board.board[i][j].owner == currentPlayer){
-	  cerr << "here7" << endl;
 	  if(board.board[i][j].top.owner == currentPlayer){
 	    if(board.board[i][j-1].owner == -1){
 	      return true;
 	    }
 	  }
-	  cerr << "here8" << endl;
 	  if(board.board[i][j].right.owner == currentPlayer){
 	    if(board.board[i+1][j].owner == -1){
 	      return true;
 	    }
 	  }
-	  cerr << "here9" << endl;
 	  if(board.board[i][j].bottom.owner == currentPlayer){
 	    if(board.board[i][j+1].owner == -1){
 	      return true;
 	    }
 	  }
-	  cerr << "here10" << endl;
 	  if(board.board[i][j].left.owner == currentPlayer){
 	    if(board.board[i-1][j].owner == -1){
 	      return true;
 	    }
 	  }
-	  cerr << "here11" << endl;
 	}
-	cerr << "here12" << endl;
-      } catch(...){
-	continue;
+      } else if(i == 0){
+	if(j == 0){
+	  if(board.board[i][j].right.owner == currentPlayer){
+	    if(board.board[i][j+1].owner == -1){
+	      return true;
+	    }
+	  }
+	  if(board.board[i][j].bottom.owner == currentPlayer){
+	    if(board.board[i+1][j].owner == -1){
+	      return true;
+	    }
+	  }
+	} else if(j == board.size-1){
+	  if(board.board[i][j].left.owner == currentPlayer){
+	    if(board.board[i][j-1].owner == -1){
+	      return true;
+	    }
+	  }
+	  if(board.board[i][j].bottom.owner == currentPlayer){
+	    if(board.board[i+1][j].owner == -1){
+	      return true;
+	    }
+	  }
+	} else {
+	  if(board.board[i][j].right.owner == currentPlayer){
+	    if(board.board[i][j+1].owner == -1){
+	      return true;
+	    }
+	  }
+	  if(board.board[i][j].left.owner == currentPlayer){
+	    if(board.board[i][j-1].owner == -1){
+	      return true;
+	    }
+	  }
+	  if(board.board[i][j].bottom.owner == currentPlayer){
+	    if(board.board[i+1][j].owner == -1){
+	      return true;
+	    }
+	  }
+	}	  
+      } else if(i == board.size-1){
+	if(j == 0){
+	  if(board.board[i][j].right.owner == currentPlayer){
+	    if(board.board[i][j+1].owner == -1){
+	      return true;
+	    }
+	  }
+	  if(board.board[i][j].top.owner == currentPlayer){
+	    if(board.board[i-1][j].owner == -1){
+	      return true;
+	    }
+	  }
+	} else if(j == board.size-1){
+	  if(board.board[i][j].left.owner == currentPlayer){
+	    if(board.board[i][j-1].owner == -1){
+	      return true;
+	    }
+	  }
+	  if(board.board[i][j].top.owner == currentPlayer){
+	    if(board.board[i-1][j].owner == -1){
+	      return true;
+	    }
+	  }
+	} else {
+	  if(board.board[i][j].left.owner == currentPlayer){
+	    if(board.board[i][j-1].owner == -1){
+	      return true;
+	    }
+	  }
+	  if(board.board[i][j].top.owner == currentPlayer){
+	    if(board.board[i-1][j].owner == -1){
+	      return true;
+	    }
+	  }
+	  if(board.board[i][j].right.owner == currentPlayer){
+	    if(board.board[i][j+1].owner == -1){
+	      return true;
+	    }
+	  }
+	}	  
+      } else if(j == 0){
+	if(i == 0){
+	  if(board.board[i][j].right.owner == currentPlayer){
+	    if(board.board[i][j+1].owner == -1){
+	      return true;
+	    }
+	  }
+	  if(board.board[i][j].bottom.owner == currentPlayer){
+	    if(board.board[i+1][j].owner == -1){
+	      return true;
+	    }
+	  }
+	} else if(i == board.size-1){
+	  if(board.board[i][j].right.owner == currentPlayer){
+	    if(board.board[i][j+1].owner == -1){
+	      return true;
+	    }
+	  }
+	  if(board.board[i][j].top.owner == currentPlayer){
+	    if(board.board[i-1][j].owner == -1){
+	      return true;
+	    }
+	  }
+	} else {
+	  if(board.board[i][j].right.owner == currentPlayer){
+	    if(board.board[i][j+1].owner == -1){
+	      return true;
+	    }
+	  }
+	  if(board.board[i][j].top.owner == currentPlayer){
+	    if(board.board[i-1][j].owner == -1){
+	      return true;
+	    }
+	  }
+	  if(board.board[i][j].bottom.owner == currentPlayer){
+	    if(board.board[i+1][j].owner == -1){
+	      return true;
+	    }
+	  }
+	}
+      } else if(j == board.size-1){
+	if(i == 0){
+	  if(board.board[i][j].bottom.owner == currentPlayer){
+	    if(board.board[i+1][j].owner == -1){
+	      return true;
+	    }
+	  }
+	  if(board.board[i][j].left.owner == currentPlayer){
+	    if(board.board[i][j-1].owner == -1){
+	      return true;
+	    }
+	  }
+	} else if(i == board.size-1){
+	  if(board.board[i][j].top.owner == currentPlayer){
+	    if(board.board[i-1][j].owner == -1){
+	      return true;
+	    }
+	  }
+	  if(board.board[i][j].left.owner == currentPlayer){
+	    if(board.board[i][j-1].owner == -1){
+	      return true;
+	    }
+	  }
+	} else {
+	  if(board.board[i][j].left.owner == currentPlayer){
+	    if(board.board[i][j-1].owner == -1){
+	      return true;
+	    }
+	  }
+	  if(board.board[i][j].top.owner == currentPlayer){
+	    if(board.board[i-1][j].owner == -1){
+	      return true;
+	    }
+	  }
+	  if(board.board[i][j].bottom.owner == currentPlayer){
+	    if(board.board[i+1][j].owner == -1){
+	      return true;
+	    }
+	  }
+	}
       }
     }
   }
-  cerr << "here7" << endl;
   return false;
 }
 int cityProg(int currentPlayer){
-  cerr << "here3" << endl;
   int brick1=0, wheat1=0;
   for(unsigned int i=0; i<board.allPlayers[currentPlayer].resourceHand.size(); i++){
     if(board.allPlayers[currentPlayer].resourceHand[i] == wheat){
@@ -504,7 +649,6 @@ int cityProg(int currentPlayer){
   return brick1+wheat1;
 }
 int townProg(int currentPlayer){
-  cerr << "here5" << endl;
   int brick1=0, wheat1=0, sheep1=0, wood1=0;
   for(unsigned int i=0; i<board.allPlayers[currentPlayer].resourceHand.size(); i++){
     if(board.allPlayers[currentPlayer].resourceHand[i] == wheat){

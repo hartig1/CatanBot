@@ -94,7 +94,6 @@ void Player::Remove(int i, Resource r){
   for(int x=0; x<size; x++){
     assert(x>-1 && x<(int)resourceHand.size());
     if(resourceHand[x] == r){
-      cout << "Removing: " << r << endl;
       resourceHand.erase(resourceHand.begin()+x);
       i--;
       if(i<=0) return;
