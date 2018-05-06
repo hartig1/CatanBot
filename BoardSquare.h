@@ -15,7 +15,7 @@ class BoardSquare
 {
 public:
 	// constructor
-  BoardSquare(Resource resourceType, int id);
+	BoardSquare(Resource resourceType);
 	// roads at the top, bottom, left, and right of square. Don't necessarily need to exist
 	Road top;
 	Road bottom;
@@ -32,17 +32,15 @@ public:
 	// what the number of the tile is
 	int number;
 	bool hasRobber;
-	int id;
 };
 
-BoardSquare::BoardSquare(Resource resourceType, int i)
+BoardSquare::BoardSquare(Resource resourceType)
 {
 	type = resourceType;
 	hasTown = false;
 	hasCity = false;
 	hasRobber = false;
 	owner = -1;
-	id = i;
 	// randomly assign this a number from 2 to 12
 	// but not 7 thats the robber tile only
 	number = (rand() % 6) + (rand() % 6) + 2;

@@ -1,7 +1,8 @@
 all:
-	mpiCC -g -Wall -o mpi_catan.out  Main.cpp
+	g++ -o catan -fopenmp Main.cpp
 run:
-	mpiexec -n $(p) ./mpi_catan.out $(size) $(playernum)
+	export OMP_NUM_THREADS=$(p)
+	./catan $(size) $(playernum)
 
 clean:
 	rm -rf *.o
