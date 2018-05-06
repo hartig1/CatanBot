@@ -2,10 +2,10 @@
 #define PLAYER_H
 
 #include <iostream>
+using namespace std;
 #include <string>
 #include <vector>
 #include <assert.h>
-using namespace std;
 
 #include "Enums.h"
 
@@ -15,7 +15,7 @@ class Player
 public:
 	// constructor
 	Player();
-	void Print();
+	void Print(bool pause);
 	void Remove(int, Resource);
 	void AddDev();
 	void UseDev(DevelopmentCard d);
@@ -36,59 +36,66 @@ Player::Player()
 	armySize = 0;
 	roadSize = 0;
 }
-void Player::Print(){
-  cout << "------------------------------------------------" << endl;
-  cout << "Player: " << playerID << " vp: " << victoryPoints << endl;
-  for(unsigned int i=0; i<resourceHand.size(); i++){
-    if(resourceHand[i] == ore){
+void Player::Print(bool pause){
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if(rank == 0){
+    cout << "------------------------------------------------" << endl;
+    cout << "Player: " << playerID << " vp: " << victoryPoints << endl;
+    for(unsigned int i=0; i<resourceHand.size(); i++){
+      if(resourceHand[i] == ore){
       cout << "ore ";
-    } else if(resourceHand[i] == wheat){
-      cout << "wheat ";
-    } else if(resourceHand[i] == sheep){
-      cout << "sheep ";
-    } else if(resourceHand[i] == brick){
-      cout << "brick ";
-    } else if(resourceHand[i] == wood){
-      cout << "wood ";
-    } else if(resourceHand[i] == desert){
-      cout << "Something is wrong why do you have a desert";
+      } else if(resourceHand[i] == wheat){
+	cout << "wheat ";
+      } else if(resourceHand[i] == sheep){
+	cout << "sheep ";
+      } else if(resourceHand[i] == brick){
+	cout << "brick ";
+      } else if(resourceHand[i] == wood){
+	cout << "wood ";
+      } else if(resourceHand[i] == desert){
+	cout << "Something is wrong why do you have a desert";
+      }
+    }
+    cout << endl;
+    for(unsigned int i=0; i<developmentHand.size(); i++){
+      if(developmentHand[i] == monopoly){
+	cout << "monopoly ";
+      } else if(developmentHand[i] == yearOfPlenty){
+	cout << "yearOfPlenty ";
+      } else if(developmentHand[i] == roadBuilding){
+	cout << "roadBuilding ";
+      } else if(developmentHand[i] == knight){
+	cout << "knight ";
+      }
+    }
+    cout << endl;
+    for(unsigned int i=0; i<ownedSquares.size(); i++){
+      if(ownedSquares[i]->hasCity){
+	cout << "City ";
+      }
+      if(ownedSquares[i]->type == ore){
+	cout << "Ore tile: " << ownedSquares[i]->number << endl;
+      } else if(ownedSquares[i]->type == wheat){
+	cout << "Wheat tile: " << ownedSquares[i]->number << endl;
+      } else if(ownedSquares[i]->type == sheep){
+	cout << "Sheep tile: " << ownedSquares[i]->number << endl;
+      } else if(ownedSquares[i]->type == brick){
+	cout << "Brick tile: " << ownedSquares[i]->number << endl;
+      } else if(ownedSquares[i]->type == wood){
+	cout << "Wood tile: " << ownedSquares[i]->number << endl;
+      } else if(ownedSquares[i]->type == desert){
+	cout << "Desert tile: ";
+      }
+    }
+    cout << "------------------------------------------------" << endl;
+    if(pause){
+      char x;
+      cin >> x;
     }
   }
-  cout << endl;
-  for(unsigned int i=0; i<developmentHand.size(); i++){
-    if(developmentHand[i] == monopoly){
-      cout << "monopoly ";
-    } else if(developmentHand[i] == yearOfPlenty){
-      cout << "yearOfPlenty ";
-    } else if(developmentHand[i] == roadBuilding){
-      cout << "roadBuilding ";
-    } else if(developmentHand[i] == knight){
-      cout << "knight ";
-    }
-  }
-  cout << endl;
-  for(unsigned int i=0; i<ownedSquares.size(); i++){
-    if(ownedSquares[i]->hasCity){
-      cout << "City ";
-    }
-    if(ownedSquares[i]->type == ore){
-      cout << "Ore tile: " << ownedSquares[i]->number << endl;
-    } else if(ownedSquares[i]->type == wheat){
-      cout << "Wheat tile: " << ownedSquares[i]->number << endl;
-    } else if(ownedSquares[i]->type == sheep){
-      cout << "Sheep tile: " << ownedSquares[i]->number << endl;
-    } else if(ownedSquares[i]->type == brick){
-      cout << "Brick tile: " << ownedSquares[i]->number << endl;
-    } else if(ownedSquares[i]->type == wood){
-      cout << "Wood tile: " << ownedSquares[i]->number << endl;
-    } else if(ownedSquares[i]->type == desert){
-      cout << "Desert tile: ";
-    }
-  }
-  cout << "------------------------------------------------" << endl;
-  char x;
-  //cin >> x;
 }
+
 void Player::Remove(int i, Resource r){
   int size = resourceHand.size();
   for(int x=0; x<size; x++){
@@ -131,5 +138,4 @@ void Player::UseDev(DevelopmentCard d){
   }
   cout << "Development card did not exist, player.UserDev()" << endl;
 }
-
 #endif

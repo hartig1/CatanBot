@@ -12,11 +12,10 @@ using namespace std;
 #include "Player.h"
 
 // class that will only have one instance, and that is the game board
-class Board
-{
+class Board{
 public:
 	// constructor
-	Board();
+	Board(int size);
 	// creates the board, needed instead of a constructor
 	void MakeBoard(int size);
 	// prints out the board in graphical form
@@ -48,14 +47,22 @@ public:
 	int biggestRoadOwner;
 };
 
-Board::Board()
-{
-	// initialize random number generator
-	srand(time(NULL));
-	biggestArmy = 2; //players must have more than 2 knights to have biggest army
-	biggestRoad = 4; //players must have more than 4 roads to have biggest road
-	biggestArmyOwner = -1;
-	biggestRoadOwner = -1;
+Board::Board(int s){
+  // initialize random number generator
+  
+  srand(time(NULL));
+  size = s;
+  for(int i=0; i<size; i++){
+    vector<BoardSquare> temp;
+    for(int j=0; j<size; j++){
+      temp.push_back(BoardSquare(ore,-1));
+    }
+    board.push_back(temp);
+  }
+  biggestArmy = 2; //players must have more than 2 knights to have biggest army
+  biggestRoad = 4; //players must have more than 4 roads to have biggest road
+  biggestArmyOwner = -1;
+  biggestRoadOwner = -1;
 }
 
 void Board::PrintBoard(void)
@@ -130,58 +137,36 @@ void Board::PrintBoard(void)
   // creates the board full of squares
 void Board::MakeBoard(int boardSize)
 {
-	// store the size of the board
-	size = boardSize;
-
-	int temp;
-	// rows of board
-	for (int i = 0; i < boardSize; i++)
-	{
-		// creates the row to add to the board
-		vector<BoardSquare> tempRow;
-
-		// columns of board
-		for (int j = 0; j < boardSize; j++)
-		{
-			// find out what type of square the square will be
-			temp = rand() % 5;
-
-			// put that type of square into the board matrix
-			switch(temp)
-			{
-				case 0:
-					tempRow.push_back(BoardSquare(wheat));
-					break;
-				case 1:
-					tempRow.push_back(BoardSquare(ore));
-					break;
-				case 2:
-					tempRow.push_back(BoardSquare(brick));
-					break;
-				case 3:
-					tempRow.push_back(BoardSquare(sheep));
-					break;
-				case 4:
-					tempRow.push_back(BoardSquare(wood));
-					break;
-				case 5:
-					tempRow.push_back(BoardSquare(desert));
-					break;
-				default:
-					cout << "\nSoemthing went wrong in MakeBoard\n";
-
-			}
-		}
-
-		board.push_back(tempRow);
-	}
-	int x = rand() % size;
-	int y = rand() % size;
-	robberX = x;
-	robberY = y;
-	board[x][y].type = desert;
-	board[x][y].number = 7;
-	board[x][y].hasRobber = true;
+  // store the size of the board
+  size = boardSize;
+  int temp;
+  int id=0; //squares id
+  // rows of board
+  for(int i=0; i<boardSize; i++){
+    board[i].clear();
+  }
+  board.clear();//clear default board to make a real one
+  for (int i = 0; i < boardSize; i++){
+    // creates the row to add to the board
+    vector<BoardSquare> tempRow;
+    
+    // columns of board
+    for (int j = 0; j < boardSize; j++){
+      // find out what type of square the square will be
+      temp = rand() % 5;
+      // put that type of square into the board matrix
+      tempRow.push_back(BoardSquare((Resource)temp,id));
+      id++;
+    }
+    board.push_back(tempRow);
+  }
+  int x = rand() % size;
+  int y = rand() % size;
+  robberX = x;
+  robberY = y;
+  board[x][y].type = desert;
+  board[x][y].number = 7;
+  board[x][y].hasRobber = true;
 }
 
 // does memory deallocation if necessary
@@ -312,8 +297,11 @@ void Board::PlaceHouse(int currentPlayer, int x, int y)
 }
 
 // places a road for the given owner
+//x and y are board coords
+//z is direction 0=left, 1=top, 2=right, 3=bottom
 void Board::PlaceRoad(int currentPlayer, int x, int y, int z)
 {
+  allPlayers[currentPlayer].roadSize++;
   if(x == -1){
     if(allPlayers[currentPlayer].ownedSquares.size() == 1){
       for(signed int i=0; i<size; i++){

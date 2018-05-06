@@ -1,11 +1,7 @@
-all: Main.o
-	g++ -Wall Main.o -o Main.out
-
-Main.o: Main.cpp
-	g++ -Wall -c Main.cpp
-
+all:
+	mpiCC -g -Wall -o mpi_catan.out  Main.cpp
 run:
-	./Main.out $(size) $(playernum)
+	mpiexec -n $(p) ./mpi_catan.out $(size) $(playernum)
 
 clean:
 	rm -rf *.o

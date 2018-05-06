@@ -8,13 +8,14 @@
 /* Command line arguments-
 * SIZE= n, where n is the nxn size of the board
 * PLAYERNUM = number of players playing the game
+* pause = should the game pause after each RunTurn
+    not required, 0 or blank = no pause, anything else = pause
 */
-
 #include <iostream>
 #include <string>
 #include <vector>
 #include <sstream>
-
+#include <mpi.h> //ol reliable
 using namespace std;
 
 #include "Board.h"
@@ -22,113 +23,133 @@ using namespace std;
 
 // global variables for ease of use
 // the board that will be used
-Board board;
-
+Board board =Board(100);
+bool pause1;
+int my_rank,p,q;
 // definitions of functions used later
 void RunFirstTurn(void);
 void RunTurn(void);
 int GetCurrentPlayer(unsigned int i);
-void UseMon(int currentPlayer, Resource r);
-void UseYOP(int currentPlayer, Resource r1, Resource r2);
-void UseRoad(int currentPlayer);
-void UseKnight(int currentPlayer);
-bool canBuildCity(int currentPlayer);
-bool canBuildTown(int currentPlayer);
+void UseMon(int currentPlayer, Resource r); //monopoly development card
+void UseYOP(int currentPlayer, Resource r1, Resource r2); //yearOfPlenty Dev card
+void UseRoad(int currentPlayer); //road builder dev card
+void UseKnight(int currentPlayer); //knight dev card
+bool canBuildCity(int currentPlayer); //is there a location for building a city, player may not have the resources
+bool canBuildTown(int currentPlayer); //is there a location for building a town, player may not have the resources
 int cityProg(int currentPlayer); //returns the number of resourced the user has that can be used in building a city
-void trade(int currentPlayer, Resource r1, Resource r2);
-int townProg(int currentPlayer);
-int roadProg(int currentPlayer);
-void buildCity(int currentPlayer);
-void buildTown(int currentPlayer);
-int main(int argc, char *argv[])
-{
-  if (argc != 3)
-    {
-      cout << "\nNot enough command-line arguments\n";
-      // return error?
+void trade(int currentPlayer, Resource r1, Resource r2); //trades three of r1 for one of r2
+int townProg(int currentPlayer); //how many out of 4 resources does a user have to build a town
+int roadProg(int currentPlayer); //how many out of 2 resources does a user have to build a road
+void MakeRoad(int currentPlayer); //decides where the road goes
+void BuildCity(int currentPlayer); //decides where the city goes
+void BuildTown(int currentPlayer); //decides where the town goes
+void sendBoard();
+void recvBoard();
+void bcastPlayers();
+void bcastPlayers();
+void sendPlayer(int);
+void recvPlayers(int);
+int main(int argc, char *argv[]){
+  if (argc != 3 && argc != 4){
+      cout << "\nNot enough command-line arguments\n" << endl;
       return -1;
-	}
-
-	else
-	  {
-	    // convert the size of the board to int
-	    // https://stackoverflow.com/questions/2797813/how-to-convert-a-command-line-argument-to-int
-	    istringstream ss(argv[1]);
-	    int size;
-	    if (!(ss >> size)) cerr << "Invalid number " << argv[1] << '\n';
-
-
-	    // convert the player number to an int
-		istringstream ss2(argv[2]);
-		int playerNum;
-		if (!(ss2 >> playerNum)) cerr << "Invalid number " << argv[2] << '\n';
-
-		// need to create the board
-		board.MakeBoard(size);
-
-		// just for testing
-		board.PrintBoard();
-
-		// create a vector of all the players (for now just 4)
-		for (int i = 0; i < playerNum; i++)
-		  {
-			board.allPlayers.push_back(Player());
-			board.allPlayers[i].playerID = i;
-		  }
-
-		// run the first turn where every player gets two settlements and two roads
-		RunFirstTurn();
-
-		// holds whether or not to end the game
-		bool done = false;
-		// runs a single turn, forever in the while loop
-		while (!done)
-		  {
-		    RunTurn();
-		    // iterate through the players and see if any of them won
-		    for (unsigned int i = 0; i < board.allPlayers.size(); i++)
-		      {
-			if (board.allPlayers[i].victoryPoints >= 10)
-			  {
-			    done = true;
-			    cout << "\nPlayer " << i << " has won!\n";
-				}
-		      }
-		  }
-
-		// clean up any memory allocation from the board
-		board.CleanupBoard();
-		return 0;
+  } else {
+    MPI_Init(NULL,NULL);
+    MPI_Comm_size(MPI_COMM_WORLD, &p);
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+    // convert the size of the board to int
+    // https://stackoverflow.com/questions/2797813/how-to-convert-a-command-line-argument-to-int
+    istringstream ss(argv[1]);
+    int size;
+    pause1 = false;
+    if (!(ss >> size)) cerr << "Invalid number " << argv[1] << '\n';
+    board = Board(size);
+    // convert the player number to an int
+    istringstream ss2(argv[2]);
+    int playerNum;
+    if (!(ss2 >> playerNum)) cerr << "Invalid number " << argv[2] << '\n';
+    // need to create the board
+    if(my_rank==0){
+      board.MakeBoard(size);
+      sendBoard(); //board object cant be sent at once
+    } else {
+      recvBoard();
+    }
+    // create a vector of all the players
+    //all thread can create the players since there is no rng
+    for (int i = 0; i < playerNum; i++){
+      board.allPlayers.push_back(Player());
+      board.allPlayers[i].playerID = i;
+    }
+    if(argc == 4){
+      istringstream ss3(argv[3]);
+      if (!(ss3 >> pause1)) cerr << "Invalid number " << argv[3] << '\n';
+      if(pause1 == 0){
+	pause1 = false;
+      } else if(pause1 == 1){
+	pause1 = true;
+      } else {
+	cout << "Invalid arg 3, enter 1 to pause after each turn, 0 to not" << endl;
+      }
+    }
+    // run the first turn where every player gets two settlements and two roads
+    RunFirstTurn();
+    if(my_rank==0){
+    // holds whether or not to end the game
+    bool done = false;
+    // runs a single turn, forever in the while loop until we have a winner
+    while (!done){
+      //cin >> rank;
+      //MPI_Barrier(MPI_COMM_WORLD);
+      RunTurn();
+      // iterate through the players and see if any of them won
+      if(my_rank==0){
+	for (unsigned int i = 0; i < board.allPlayers.size(); i++){
+	  if (board.allPlayers[i].victoryPoints >= 10){
+	    done = true;
+	    cout << "\nPlayer " << i << " has won!\n";
+	    board.PrintBoard();
 	  }
+	}
+      }
+    }
+    // clean up any memory allocation from the board
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+    board.CleanupBoard();
+    MPI_Finalize();
+    return 0;
+  }
 }
 
 void RunFirstTurn(void)
 {
   // each player puts down a settlement and a road
-  for (unsigned int i = 0; i < board.allPlayers.size(); i++)
-    {
-      // current player gets to place a house and a road
-		board.PlaceHouse(i,-1,-1);
-		//-1 signifies a first turn placement
-		board.PlaceRoad(i,-1,-1,-1);
-    }
-
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  //cerr << rank << endl;
+  for (unsigned int i = 0; i < board.allPlayers.size(); i++){
+    // current player gets to place a house and a road
+    board.PlaceHouse(i,-1,-1);
+    //-1 signifies a first turn placement
+    board.PlaceRoad(i,-1,-1,-1);
+  }
   // now do the same thing again
-  for (unsigned int i = 0; i < board.allPlayers.size(); i++)
-    {
-      // current player gets to place a house and a road
-      board.PlaceHouse(i,-1,-1);
-      board.PlaceRoad(i,-1,-1,-1);
-    }
+  for (unsigned int i = 0; i < board.allPlayers.size(); i++){
+    // current player gets to place a house and a road
+    board.PlaceHouse(i,-1,-1);
+    board.PlaceRoad(i,-1,-1,-1);
+  }
   board.PrintBoard();
 }
 
-void RunTurn(void)
-{
+void RunTurn(void){
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   // run a turn for each person in the game
   for (unsigned int i = 0; i < board.allPlayers.size(); i++){
     Player* p = &board.allPlayers[i];
-    p->Print();
+    p->Print(pause1);
     // first, roll the die and see who gets what
     board.RollResourceDice(board.allPlayers[i]);
     vector<int> turn;
@@ -139,9 +160,7 @@ void RunTurn(void)
     int tradeO=0, tradeWh=0, tradeWo=0, tradeS=0, tradeB=0;
     int mon=0,year=0,build=0,knight1=0;
     int brick1=0,wood1=0,wheat1=0,sheep1=0,ore1=0; //had to rename because it mathced the enum name
-
     for(unsigned int j=0; j<p->developmentHand.size(); j++){
-      //cout << j << endl;
       if(p->developmentHand[j] == monopoly){
 	turn.push_back(1);
 	mon++;
@@ -207,73 +226,73 @@ void RunTurn(void)
       turn.push_back(8); //can make dev card
     }
     if(canBuildTown(i) && townProg(i) == 4){
-      buildTown(i);
+      BuildTown(i);
     } else if(canBuildTown(i) && townProg(i) == 2 && year>=1){
       if(brick1 == 0 && wood1 == 0){
 	UseYOP(i, brick, wood);
-	buildTown(i);
+	BuildTown(i);
       } else if(brick1 == 0 && wheat1 == 0){
 	UseYOP(i,brick,wheat);
-	buildTown(i);
+	BuildTown(i);
       } else if(brick1 == 0 && sheep1 == 0){
 	UseYOP(i,brick,sheep);
-	buildTown(i);
+	BuildTown(i);
       } else if(wood1 == 0 && wheat1 == 0){
 	UseYOP(i,wood,wheat);
-	buildTown(i);
+	BuildTown(i);
       } else if(wood1 == 0 && sheep1 == 0){
 	UseYOP(i,wood,sheep);
-	buildTown(i);
+	BuildTown(i);
       } else if(wheat1 == 0 && sheep1 == 0){
 	UseYOP(i,wheat,sheep);
-	buildTown(i);
+	BuildTown(i);
       } else {
 	cout << "Error in using yop to build a town" << endl;
       }
     }
     if(canBuildCity(i) && cityProg(i) ==5){
-      buildCity(i);
+      BuildCity(i);
     } else if(canBuildCity(i) && cityProg(i) == 4 && (tradeWo + tradeB + tradeS) >=1){
       if(tradeWo >=1){
 	if(wheat1 <2){
 	  board.allPlayers[i].Remove(3,wood);
 	  board.allPlayers[i].resourceHand.push_back(wheat);
-	  buildCity(i);
+	  BuildCity(i);
 	} else if(ore1 <2){
 	  board.allPlayers[i].Remove(3,wood);
 	  board.allPlayers[i].resourceHand.push_back(ore);
-	  buildCity(i);
+	  BuildCity(i);
 	}
       } else if(tradeB >=1){
 	if(wheat1 <2){
 	  board.allPlayers[i].Remove(3,brick);
 	  board.allPlayers[i].resourceHand.push_back(wheat);
-	  buildCity(i);
+	  BuildCity(i);
 	} else if(ore1 <2){
 	  board.allPlayers[i].Remove(3,brick);
 	  board.allPlayers[i].resourceHand.push_back(ore);
-	  buildCity(i);
+	  BuildCity(i);
 	}
       } else if(tradeS >=1){
 	if(wheat1 <2){
 	  board.allPlayers[i].Remove(3,sheep);
 	  board.allPlayers[i].resourceHand.push_back(wheat);
-	  buildCity(i);
+	  BuildCity(i);
 	} else if(ore1 <2){
 	  board.allPlayers[i].Remove(3,sheep);
 	  board.allPlayers[i].resourceHand.push_back(ore);
-	  buildCity(i);
+	  BuildCity(i);
 	}
       }
     } else if(canBuildTown(i) && townProg(i) ==4){
-      //buildTown(i);
+      BuildTown(i);
     }
     if(knight1 >= 1){
       //if we only have 1 knight wait until the robber is on our square to use it
       if(board.board[board.robberX][board.robberY].owner == int(i) && knight1 == 1){
 	//move robber
 	UseKnight(i);
-	//if we have multiple knights use on against the best player
+	//if we have multiple knights use on against the winning player
       } else if(knight >= 2){
 	UseKnight(i);
       }
@@ -305,23 +324,37 @@ void RunTurn(void)
 	UseMon(i, wood);
       } else if(numS >= numO && numS >= numWh && numS >= numWo && numS >= numB){
 	UseMon(i, sheep);
-      } else if(numB >= numO && numB >= numWh && numB >= numS && numB >= numWo){
+	//} else if(numB >= numO && numB >= numWh && numB >= numS && numB >= numWo){
+      } else {
 	UseMon(i, brick);
       }
-
+    }
+    if(build >= 1){
+      UseRoad(i);
     }
     if(year >= 1){
       //brick1 wood1 ore1 wheat1 sheep1
       //if()
       if(canBuildCity(i) && cityProg(i) >= 3){
-	
+	if(ore1 >= 3){
+	  UseYOP(i,wheat,wheat);
+	  BuildCity(i);
+	} else if(ore1 >= 2){
+	  UseYOP(i,wheat,ore);
+	  BuildCity(i);
+	} else if(ore1 >= 1){
+	  UseYOP(i,ore,ore);
+	  BuildCity(i);
+	}
+      } else {
+	UseYOP(i,Resource(rand() %5), Resource(rand() %5));
       }
     }
-    if(not settlement && not city && not road && dev){
+    if(!settlement && !city && !road && dev){
       //aquire a development car
     }
     if(true){
-    //if(turn.size() == 0){
+      //if(turn.size() == 0){
       //no possible move, try to trade for other resources
       if(sheep1 >=1 && wheat1 >= 1){
 	if(tradeB > 1){
@@ -389,7 +422,7 @@ void RunTurn(void)
       Resource randomResource = (Resource)(rand() %5);
       trade(i,ore,randomResource);
     }
-    if(tradeWh >= 1){      
+    if(tradeWh >= 1){
       Resource randomResource = (Resource)(rand() %5);
       trade(i,wheat,randomResource);
     }
@@ -404,10 +437,12 @@ void RunTurn(void)
     if(tradeB >= 1){
       Resource randomResource = (Resource)(rand() %5);
       trade(i,brick,randomResource);
-    }      
+    }
   }
 }
 void UseMon(int currentPlayer, Resource r){
+  //cout << "mon" << endl;
+  board.allPlayers[currentPlayer].UseDev(monopoly);
   int count=0; //total to add to user
   for(unsigned int i=0; i<board.allPlayers.size(); i++){
     if((int)i != currentPlayer){
@@ -427,19 +462,49 @@ void UseMon(int currentPlayer, Resource r){
 }
 
 void UseYOP(int currentPlayer, Resource r1, Resource r2){
+  board.allPlayers[currentPlayer].UseDev(yearOfPlenty);
   board.allPlayers[currentPlayer].resourceHand.push_back(r1);
-  board.allPlayers[currentPlayer].resourceHand.push_back(r2);  
+  board.allPlayers[currentPlayer].resourceHand.push_back(r2);
 }
 
 void UseRoad(int currentPlayer){
-
+  board.allPlayers[currentPlayer].UseDev(roadBuilding);
+  //roadBuilding dev card makes 2 roads
+  MakeRoad(currentPlayer);
+  MakeRoad(currentPlayer);
+}
+void MakeRoad(int currentPlayer){
+  for(int i=0; i<board.size; i++){
+    for(int j=0; j<board.size; j++){
+      if(board.board[i][j].owner == currentPlayer){
+	if(i != 0 && i != board.size-1 && j != 0 and j != board.size-1){
+	  if(board.board[i-1][j].owner == -1 && board.board[i-1][j].type != desert && !board.board[i][j].top.exists){
+	    board.PlaceRoad(currentPlayer,i,j,1);
+	    return;
+	  }
+	  if(board.board[i][j+1].owner == -1 && board.board[i][j+1].type != desert && !board.board[i][j].right.exists){
+	    board.PlaceRoad(currentPlayer,i,j,2);
+	    return;
+	  }
+	  if(board.board[i+1][j].owner == -1 && board.board[i+1][j].type != desert && !board.board[i][j].bottom.exists){
+	    board.PlaceRoad(currentPlayer,i,j,3);
+	    return;
+	  }
+	  if(board.board[i][j-1].owner == -1 && board.board[i][j-1].type != desert && !board.board[i][j].left.exists){
+	    board.PlaceRoad(currentPlayer,i,j,0);
+	    return;
+	  }
+	}
+      }
+    }
+  }
 }
 
 //dev: true if they used a dev card, false if they rolled 7
 void UseKnight(int currentPlayer){
-  //cout << "Using knight" << endl;
   int winning;
   int winningVP=0;
+  board.allPlayers[currentPlayer].UseDev(knight);
   for(unsigned int i=0; i<board.allPlayers.size(); i++){
     if((int)i != currentPlayer && board.allPlayers[i].victoryPoints > winningVP){
       winning =i;
@@ -453,7 +518,6 @@ void UseKnight(int currentPlayer){
 	board.board[i][j].hasRobber = true;
 	board.robberX = i;
 	board.robberY = j;
-	board.allPlayers[currentPlayer].UseDev(knight);
 	board.PrintBoard();
 	board.allPlayers[currentPlayer].armySize++;
 	if(board.allPlayers[currentPlayer].armySize > board.biggestArmy){
@@ -549,7 +613,7 @@ bool canBuildTown(int currentPlayer){
 	      return true;
 	    }
 	  }
-	}	  
+	}
       } else if(i == board.size-1){
 	if(j == 0){
 	  if(board.board[i][j].right.owner == currentPlayer){
@@ -589,7 +653,7 @@ bool canBuildTown(int currentPlayer){
 	      return true;
 	    }
 	  }
-	}	  
+	}
       } else if(j == 0){
 	if(i == 0){
 	  if(board.board[i][j].right.owner == currentPlayer){
@@ -675,11 +739,11 @@ bool canBuildTown(int currentPlayer){
   }
   return false;
 }
- void trade(int currentPlayer, Resource r1, Resource r2){
-   //trade 3 r1 for 1 r2
-   board.allPlayers[currentPlayer].Remove(3,r1);
-   board.allPlayers[currentPlayer].resourceHand.push_back(r2);
- }
+void trade(int currentPlayer, Resource r1, Resource r2){
+  //trade 3 r1 for 1 r2
+  board.allPlayers[currentPlayer].Remove(3,r1);
+  board.allPlayers[currentPlayer].resourceHand.push_back(r2);
+}
 int cityProg(int currentPlayer){
   int brick1=0, wheat1=0;
   for(unsigned int i=0; i<board.allPlayers[currentPlayer].resourceHand.size(); i++){
@@ -726,7 +790,7 @@ int townProg(int currentPlayer){
       } else {
 	continue;
       }
-    }    
+    }
   }
   return brick1+wheat1+wood1+sheep1;
 }
@@ -749,7 +813,7 @@ int roadProg(int currentPlayer){
   }
   return brick1+wood1;
 }
-void buildCity(int currentPlayer){
+void BuildCity(int currentPlayer){
   for(unsigned int i=0; i<board.allPlayers[currentPlayer].ownedSquares.size(); i++){
     if(!board.allPlayers[currentPlayer].ownedSquares[i]->hasCity){
       board.allPlayers[currentPlayer].ownedSquares[i]->hasCity = true;
@@ -759,9 +823,9 @@ void buildCity(int currentPlayer){
       return;
     }
   }
-  cout << "Unable to build city no spaces available" << endl;
+  //cout << "Unable to build city no spaces available" << endl;
 }
-void buildTown(int currentPlayer){
+void BuildTown(int currentPlayer){
   //giant mess of conditions to ensure we don't access memory out of the vector
   for(int i=0; i<board.size; i++){
     for(int j=0; j<board.size; j++){
@@ -849,7 +913,7 @@ void buildTown(int currentPlayer){
 	      return;
 	    }
 	  }
-	}	  
+	}
       } else if(i == board.size-1){
 	if(j == 0){
 	  if(board.board[i][j].right.owner == currentPlayer){
@@ -880,7 +944,7 @@ void buildTown(int currentPlayer){
 	      board.board[i-1][j].owner = currentPlayer;
 	      return;
 	    }
-	  }
+	 }
 	} else {
 	  if(board.board[i][j].left.owner == currentPlayer){
 	    if(board.board[i][j-1].owner == -1 && board.board[i][j-1].type != desert){
@@ -903,7 +967,7 @@ void buildTown(int currentPlayer){
 	      return;
 	    }
 	  }
-	}	  
+	}
       } else if(j == 0){
 	if(i == 0){
 	  if(board.board[i][j].right.owner == currentPlayer){
@@ -1016,4 +1080,237 @@ void buildTown(int currentPlayer){
     }
   }
   return;
+}
+void sendBoard(){
+  int tempInt=0;
+  for(int i=0; i<board.size; i++){
+    for(int j=0; j<board.size; j++){
+      tempInt = (int)board.board[i][j].top.exists;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      tempInt = board.board[i][j].top.owner;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      tempInt = (int)board.board[i][j].right.exists;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      tempInt = board.board[i][j].right.owner;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      tempInt = (int)board.board[i][j].bottom.exists;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      tempInt = board.board[i][j].bottom.owner;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      tempInt = (int)board.board[i][j].left.exists;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      tempInt = board.board[i][j].left.owner;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      tempInt = (int)board.board[i][j].hasTown;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      tempInt = (int)board.board[i][j].hasCity;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      tempInt = board.board[i][j].type;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      tempInt = board.board[i][j].number;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      tempInt = (int)board.board[i][j].hasRobber;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+    }
+  }
+  tempInt = board.size;
+  MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+  tempInt = board.robberX;
+  MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+  tempInt = board.robberY;
+  MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+  tempInt = board.biggestArmy;
+  MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+  tempInt = board.biggestRoad;
+  MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+  tempInt = board.biggestArmyOwner;
+  MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+  tempInt = board.biggestRoadOwner;
+  MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+
+}
+void recvBoard(){
+  int tempInt=0;
+  for(int i=0; i<board.size; i++){
+    for(int j=0; j<board.size; j++){
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      board.board[i][j].top.exists = (bool)tempInt;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      board.board[i][j].top.owner = tempInt;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      board.board[i][j].right.exists = (bool)tempInt;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      board.board[i][j].right.owner = tempInt;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      board.board[i][j].bottom.exists = (bool)tempInt;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      board.board[i][j].bottom.owner = tempInt;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      board.board[i][j].left.exists = (bool)tempInt;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      board.board[i][j].left.owner = tempInt;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      board.board[i][j].hasTown = (bool)tempInt;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      board.board[i][j].hasCity = (bool)tempInt;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      board.board[i][j].type = (Resource)tempInt;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      board.board[i][j].number = tempInt;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+      board.board[i][j].hasRobber = (bool)tempInt;
+    }
+  }
+  MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+  tempInt = board.size;
+  MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+  tempInt = board.robberX;
+  MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+  tempInt = board.robberY;
+  MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+  tempInt = board.biggestArmy;
+  MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+  tempInt = board.biggestRoad;
+  MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+  tempInt = board.biggestArmyOwner;
+  MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+  tempInt = board.biggestRoadOwner;
+}
+void bcastPlayersS(){
+  int tempInt=0;
+  for(unsigned int i=0; i<board.allPlayers.size(); i++){
+    tempInt = board.allPlayers[i].resourceHand.size();
+    MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+    for(unsigned int j=0; j<board.allPlayers[i].resourceHand.size(); j++){
+      tempInt = board.allPlayers[i].resourceHand[j];
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+    }
+    tempInt = board.allPlayers[i].developmentHand.size();
+    MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+    for(unsigned int j=0; j<board.allPlayers[i].developmentHand.size(); j++){
+      tempInt = board.allPlayers[i].developmentHand[j];
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+    }
+    tempInt = board.allPlayers[i].ownedSquares.size();
+    MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+    for(unsigned int j=0; j<board.allPlayers[i].ownedSquares.size(); j++){
+      tempInt = board.allPlayers[i].ownedSquares[j]->id;
+      MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+    }
+    tempInt = board.allPlayers[i].playerID;
+    MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+    tempInt = board.allPlayers[i].armySize;
+    MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+    tempInt = board.allPlayers[i].roadSize;
+    MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+    tempInt = board.allPlayers[i].victoryPoints;
+    MPI_Bcast(&tempInt,1, MPI_INT, 0, MPI_COMM_WORLD);
+  }
+}
+void bcastPlayersR(){
+  int tempInt1=0;
+  int tempInt2=0;
+  for(unsigned int i=0; i<board.allPlayers.size(); i++){
+    MPI_Bcast(&tempInt1,1, MPI_INT, 0, MPI_COMM_WORLD);
+    board.allPlayers[i].resourceHand.clear();
+    for(int j=0; j<tempInt1; j++){
+      MPI_Bcast(&tempInt2,1, MPI_INT, 0, MPI_COMM_WORLD);
+      board.allPlayers[i].resourceHand.push_back((Resource)tempInt2);
+    }
+    MPI_Bcast(&tempInt1,1, MPI_INT, 0, MPI_COMM_WORLD);
+    board.allPlayers[i].developmentHand.clear();
+    for(int j=0; j<tempInt1; j++){
+      MPI_Bcast(&tempInt2,1, MPI_INT, 0, MPI_COMM_WORLD);
+      board.allPlayers[i].developmentHand.push_back((DevelopmentCard)tempInt2);
+    }
+    MPI_Bcast(&tempInt1,1, MPI_INT, 0, MPI_COMM_WORLD);
+    board.allPlayers[i].ownedSquares.clear();
+    for(int j=0; j<tempInt1; j++){
+      MPI_Bcast(&tempInt2,1, MPI_INT, 0, MPI_COMM_WORLD);
+      for(int a=0; a<board.size; a++){
+	for(int b=0; b<board.size; b++){
+	  if(board.board[a][b].id == tempInt2){
+	    board.allPlayers[i].ownedSquares.push_back(&board.board[a][b]);
+	  }
+	}
+      }
+    }    
+    MPI_Bcast(&tempInt1,1, MPI_INT, 0, MPI_COMM_WORLD);
+    board.allPlayers[i].playerID = tempInt1;
+    MPI_Bcast(&tempInt1,1, MPI_INT, 0, MPI_COMM_WORLD);
+    board.allPlayers[i].armySize = tempInt1;
+    MPI_Bcast(&tempInt1,1, MPI_INT, 0, MPI_COMM_WORLD);
+    board.allPlayers[i].roadSize = tempInt1;
+    MPI_Bcast(&tempInt1,1, MPI_INT, 0, MPI_COMM_WORLD);
+    board.allPlayers[i].victoryPoints = tempInt1;
+  }
+}
+void sendPlayers(int rank1){
+  int tempInt=0;
+  for(unsigned int i=0; i<board.allPlayers.size(); i++){
+    tempInt = board.allPlayers[i].resourceHand.size();
+    MPI_Send(&tempInt,1, MPI_INT, rank1, 1, MPI_COMM_WORLD);
+    for(unsigned int j=0; j<board.allPlayers[i].resourceHand.size(); j++){
+      tempInt = board.allPlayers[i].resourceHand[j];
+      MPI_Send(&tempInt,1, MPI_INT, rank1, 1, MPI_COMM_WORLD);
+    }
+    tempInt = board.allPlayers[i].developmentHand.size();
+    MPI_Send(&tempInt,1, MPI_INT, rank1, 1, MPI_COMM_WORLD);
+    for(unsigned int j=0; j<board.allPlayers[i].developmentHand.size(); j++){
+      tempInt = board.allPlayers[i].developmentHand[j];
+      MPI_Send(&tempInt,1, MPI_INT, rank1, 1, MPI_COMM_WORLD);
+    }
+    tempInt = board.allPlayers[i].ownedSquares.size();
+    MPI_Send(&tempInt,1, MPI_INT, rank1, 1, MPI_COMM_WORLD);
+    for(unsigned int j=0; j<board.allPlayers[i].ownedSquares.size(); j++){
+      tempInt = board.allPlayers[i].ownedSquares[j]->id;
+      MPI_Send(&tempInt,1, MPI_INT, rank1, 1, MPI_COMM_WORLD);
+    }
+    tempInt = board.allPlayers[i].playerID;
+    MPI_Send(&tempInt,1, MPI_INT, rank1, 1, MPI_COMM_WORLD);
+    tempInt = board.allPlayers[i].armySize;
+    MPI_Send(&tempInt,1, MPI_INT, rank1, 1, MPI_COMM_WORLD);
+    tempInt = board.allPlayers[i].roadSize;
+    MPI_Send(&tempInt,1, MPI_INT, rank1, 1, MPI_COMM_WORLD);
+    tempInt = board.allPlayers[i].victoryPoints;
+    MPI_Send(&tempInt,1, MPI_INT, rank1, 1, MPI_COMM_WORLD);
+  }
+}
+void recvPlayer(int rank1){
+  int tempInt1=0;
+  int tempInt2=0;
+  for(unsigned int i=0; i<board.allPlayers.size(); i++){
+    MPI_Recv(&tempInt1,1, MPI_INT, rank1, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    board.allPlayers[i].resourceHand.clear();
+    for(int j=0; j<tempInt1; j++){
+      MPI_Recv(&tempInt2,1, MPI_INT, rank1, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      board.allPlayers[i].resourceHand.push_back((Resource)tempInt2);
+    }
+    MPI_Recv(&tempInt1,1, MPI_INT, rank1, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    board.allPlayers[i].developmentHand.clear();
+    for(int j=0; j<tempInt1; j++){
+      MPI_Recv(&tempInt2,1, MPI_INT, rank1, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      board.allPlayers[i].developmentHand.push_back((DevelopmentCard)tempInt2);
+    }
+    MPI_Recv(&tempInt1,1, MPI_INT, rank1, 1, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+    board.allPlayers[i].ownedSquares.clear();
+    for(int j=0; j<tempInt1; j++){
+      MPI_Recv(&tempInt2,1, MPI_INT, rank1, 1, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+      for(int a=0; a<board.size; a++){
+	for(int b=0; b<board.size; b++){
+	  if(board.board[a][b].id == tempInt2){
+	    board.allPlayers[i].ownedSquares.push_back(&board.board[a][b]);
+	  }
+	}
+      }
+    }    
+    MPI_Recv(&tempInt1,1, MPI_INT, rank1, 1, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+    board.allPlayers[i].playerID = tempInt1;
+    MPI_Recv(&tempInt1,1, MPI_INT, rank1, 1, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+    board.allPlayers[i].armySize = tempInt1;
+    MPI_Recv(&tempInt1,1, MPI_INT, rank1, 1, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+    board.allPlayers[i].roadSize = tempInt1;
+    MPI_Recv(&tempInt1,1, MPI_INT, rank1, 1, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+    board.allPlayers[i].victoryPoints = tempInt1;
+  }
 }
