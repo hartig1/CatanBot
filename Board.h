@@ -391,7 +391,7 @@ void Board::PlaceRoad(int currentPlayer, int x, int y, int z)
 	}
       }
     } else {
-      cout << "Error in placeRoad" << endl;
+      cout << "Error in PlaceRoad, no spaces available" << endl;
     }
   } else {
     if(z == 0){

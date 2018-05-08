@@ -94,7 +94,11 @@ void Player::Print(bool pause){
 void Player::Remove(int i, Resource r){
   int size = resourceHand.size();
   for(int x=0; x<size; x++){
-    assert(x>-1 && x<(int)resourceHand.size());
+    //assert(x>-1 && x<(int)resourceHand.size());
+    if(!(x>-1) or !(x<(int)resourceHand.size())){
+      cerr << "assertion failed in Player::Remove" << endl;
+      return ;
+    }
     if(resourceHand[x] == r){
       resourceHand.erase(resourceHand.begin()+x);
       i--;

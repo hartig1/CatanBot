@@ -1,8 +1,8 @@
 all:
-	g++ -o catan -fopenmp Main.cpp
+	g++ -o catan.out -fopenmp Main.cpp
 run:
 	export OMP_NUM_THREADS=$(p)
-	./catan $(size) $(playernum)
+	./catan.out $(size) $(playernum)
 
 clean:
 	rm -rf *.o
